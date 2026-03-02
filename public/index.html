@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교내 생활 지도 관리</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="title-box">
+            <h1>교내 생활 지도 관리</h1>
+        </div>
+
+        <div class="checklist-panel">
+            <div id="record-section" class="hidden">
+                <!-- 기존 기록 폼 내용은 JS에 의해 제어되므로 구조만 유지 -->
+                <input type="text" id="student-id" placeholder="학번">
+                <input type="text" id="student-name" placeholder="이름">
+                
+                <select id="time-select">
+                    <option value="class-time">수업시간</option>
+                    <option value="break-time">쉬는시간</option>
+                </select>
+                
+                <input type="number" id="class-period" placeholder="교시" class="hidden">
+        
+                <div id="dress-code-violations">
+                    <h3>복장 위반</h3>
+                    <label><input type="checkbox" name="dress-code" value="no-uniform"> 교복 미착용</label>
+                    <label><input type="checkbox" name="dress-code" value="modified-uniform"> 교복 변형</label>
+                    <label><input type="checkbox" name="dress-code" value="slippers"> 실내화 미착용</label>
+                    <label><input type="checkbox" name="dress-code" value="accessories"> 액세서리 착용</label>
+                </div>
+        
+                <div id="electronic-device-violation">
+                    <h3>전자기기 위반</h3>
+                    <label class="switch">
+                        <input type="checkbox" id="device-violation-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+        
+                <button id="save-violation">저장</button>
+            </div>
+        </div>
+
+        <!-- 버튼들은 JS 기능 유지를 위해 ID 그대로 사용 -->
+        <button id="record-violation-btn">기록</button>
+        <button id="teacher-auth-btn">권한 로그인</button>
+
+    </div>
+
+    <!-- 비밀번호 모달은 디자인 변경 요구사항에 없었으므로 그대로 유지 -->
+    <div id="password-modal" class="hidden">
+        <div class="modal-content">
+            <h2>비밀번호 입력</h2>
+            <input type="password" id="teacher-password" placeholder="비밀번호">
+            <button id="password-submit">확인</button>
+            <button id="password-cancel">취소</button>
+        </div>
+    </div>
+
+    <script src="app.js" type="module"></script>
+</body>
+</html>

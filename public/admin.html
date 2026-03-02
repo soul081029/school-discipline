@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 페이지</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div id="login-form">
+            <h1>관리자 로그인</h1>
+            <input type="email" id="email" placeholder="이메일">
+            <input type="password" id="password" placeholder="비밀번호">
+            <button id="login-btn">로그인</button>
+        </div>
+
+        <div id="admin-panel" class="hidden">
+            <h1>위반 목록</h1>
+            <input type="date" id="date-picker">
+            <button id="excel-download">엑셀로 다운로드</button>
+            <button id="logout-btn">로그아웃</button>
+            <ul id="violation-list"></ul>
+        </div>
+    </div>
+    <script src="app.js" type="module"></script>
+</body>
+</html>
