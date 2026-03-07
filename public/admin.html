@@ -3,39 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>관리자 페이지</title>
+    <title>관리자 페이지 - 레이아웃</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+
+    <style>
+    /* Page background */
+    html, body { height: 100%; margin: 0; background: #FAF9F6; }
+    .container { position: relative; width: 100%; height: 100vh; }
+
+    /* 1) 기록 조회 배경 판 */
+    .record-card {
+        position: absolute;
+        left: 7.5521%; /* 145 / 1920 */
+        top: 6.2963%;  /* 68 / 1080 */
+        width: 39.5833%; /* 760 / 1920 */
+        height: 87.3148%; /* 943 / 1080 */
+        background: #FFFCF3;
+        border-radius: 100px;
+        box-shadow: 25px 25px 30px rgba(0,0,0,0.25);
+        z-index: 1;
+    }
+
+    /* 2) 횟수 조회 배경 판 */
+    .count-card {
+        position: absolute;
+        left: 52.8646%; /* 1015 / 1920 */
+        top: 6.2963%;
+        width: 39.5833%;
+        height: 87.3148%;
+        background: #FFFCF3;
+        border-radius: 100px;
+        box-shadow: 25px 25px 30px rgba(0,0,0,0.25);
+        z-index: 1;
+    }
+
+    /* 3) 기록 조회 내부 판 */
+    .record-inner {
+        position: absolute;
+        left: 9.8958%; /* 190 / 1920 */
+        top: 9.5370%;  /* 103 / 1080 */
+        width: 34.8958%; /* 670 / 1920 */
+        height: 14.6296%; /* 158 / 1080 */
+        background: #FAF9F6;
+        border-radius: 100px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        z-index: 2;
+    }
+
+    /* 4) 횟수 조회 내부 판 */
+    .count-inner {
+        position: absolute;
+        left: 55.2083%; /* 1060 / 1920 */
+        top: 9.5370%;
+        width: 34.8958%;
+        height: 14.6296%;
+        background: #FAF9F6;
+        border-radius: 100px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        z-index: 2;
+    }
+
+    /* 5) / 6) 제목 텍스트 */
+    .title-record {
+        position: absolute;
+        left: 12.1354%; /* 233 / 1920 */
+        top: 12.0370%;  /* 130 / 1080 */
+        color: #EB8F26;
+        font-size: 40px;
+        font-weight: 800;
+        z-index: 3;
+    }
+    .title-count {
+        position: absolute;
+        left: 57.4479%; /* 1103 / 1920 */
+        top: 12.0370%;
+        color: #EB8F26;
+        font-size: 40px;
+        font-weight: 800;
+        z-index: 3;
+    }
+
+    /* Toggle buttons (date / period etc.) */
+    .toggle {
+        position: absolute;
+        border-radius: 100px;
+        background: #FAF9F6;
+        border: 2px solid #D9D9D9;
+        color: #737373;
+        font-size: 24px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 4;
+    }
+
+    .toggle-date { left: 12.1354%; top: 18.0556%; width: 14.2188%; height: 3.6111%; }
+    .toggle-period { left: 28.2813%; top: 18.0556%; width: 14.2188%; height: 3.6111%; }
+    .toggle-period-count { left: 57.4479%; top: 18.0556%; width: 14.2188%; height: 3.6111%; }
+    .toggle-count-by { left: 73.5938%; top: 18.0556%; width: 14.2188%; height: 3.6111%; }
+
+    /* 돌아가기 버튼 */
+    .back-btn {
+        position: absolute;
+        left: 88.75%; /* 1704 / 1920 */
+        top: 93.6111%; /* 1011 / 1080 */
+        color: #898989;
+        font-size: 32px;
+        font-weight: 400;
+        text-decoration: underline;
+        cursor: pointer;
+        z-index: 5;
+    }
+
+    /* Simple responsiveness: ensure text doesn't overflow cards */
+    h1 { margin: 0; padding: 0 20px; }
+    </style>
+
 </head>
 
-<body style="display:none;">
+<body>
 
     <div class="container">
 
-        <!-- 로딩 화면 (Firebase 인증 확인 중 표시) -->
-        <div id="loading-screen">
-            로딩 중...
+        <!-- 좌우 카드 -->
+        <div class="record-card"></div>
+        <div class="count-card"></div>
+
+        <!-- 내부 판 (겹쳐짐) -->
+        <div class="record-inner"></div>
+        <div class="count-inner"></div>
+
+        <!-- 텍스트 -->
+        <div class="title-record">일별 기록 조회</div>
+        <div class="title-count">누적 횟수 조회</div>
+
+        <!-- 토글 버튼(레이아웃용, 기능 없음) -->
+        <div class="toggle toggle-date">날짜</div>
+        <div class="toggle toggle-period">누적 기간</div>
+        <div class="toggle toggle-period-count">누적 기간</div>
+        <div class="toggle toggle-count-by">누적 횟수 별 조회</div>
+
+        <!-- 관리자 패널 (레이아웃용) -->
+        <div id="admin-content">
+            <div id="admin-panel"></div>
         </div>
 
-        <!-- 관리자 페이지 컨텐츠 -->
-        <div id="admin-content" class="hidden">
-
-            <div id="admin-panel" class="hidden">
-                <h1>위반 목록</h1>
-
-                <div class="admin-controls">
-                    <input type="date" id="date-picker">
-                    <button id="excel-download">엑셀로 다운로드</button>
-                    <button id="logout-btn">로그아웃</button>
-                </div>
-
-                <ul id="violation-list"></ul>
-            </div>
-
-        </div>
+        <!-- 돌아가기 -->
+        <div class="back-btn">돌아가기</div>
 
     </div>
 
+    <!-- app.js는 유지하되 기능은 별도로 사용하지 않음 -->
     <script src="app.js" type="module"></script>
 
 </body>

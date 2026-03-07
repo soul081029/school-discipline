@@ -239,10 +239,13 @@ if (currentPath.includes('admin.html')) {
         });
     }
     
-    datePicker.addEventListener('change', loadViolations);
+    if (datePicker) {
+        datePicker.addEventListener('change', loadViolations);
+    }
 
     async function loadViolations() {
         try {
+            if (!datePicker || !violationList) return;
             const selectedDate = new Date(datePicker.value);
             const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
             const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
@@ -254,7 +257,7 @@ if (currentPath.includes('admin.html')) {
             );
 
             const querySnapshot = await getDocs(q);
-            violationList.innerHTML = '';
+            if (violationList) violationList.innerHTML = '';
             querySnapshot.forEach(docSnap => {
                 renderViolation(docSnap.id, docSnap.data());
             });
@@ -288,7 +291,7 @@ if (currentPath.includes('admin.html')) {
         `;
         li.innerHTML = `<span>${details}</span>`;
         
-        const deleteBtn = document.createElement('button');
+    const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '삭제';
         deleteBtn.onclick = async () => {
             if(confirm('정말로 삭제하시겠습니까?')) {
@@ -297,11 +300,13 @@ if (currentPath.includes('admin.html')) {
             }
         };
         li.appendChild(deleteBtn);
-        violationList.appendChild(li);
+        if (violationList) violationList.appendChild(li);
     }
     
-    excelDownloadBtn.addEventListener('click', async () => {
+    if (excelDownloadBtn) {
+        excelDownloadBtn.addEventListener('click', async () => {
         try {
+            if (!datePicker) { alert('날짜를 선택해주세요.'); return; }
             const selectedDate = new Date(datePicker.value);
             const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
             const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
@@ -351,5 +356,6 @@ if (currentPath.includes('admin.html')) {
             console.error("🔥 엑셀 다운로드 오류:", error);
             alert("엑셀 다운로드 중 오류가 발생했습니다. 콘솔을 확인하세요.");
         }
-    });
+        });
+    }
 }

@@ -319,3 +319,64 @@ input:checked + .slider:before { transform: translateX(26px); }
         margin: 1rem auto;
     }
 }
+
+/* Admin layout overrides (coordinates are % based for 1920x1080 design) */
+.container {
+    position: relative;
+}
+
+.record-card, .count-card,
+.record-inner, .count-inner,
+.title-record, .title-count,
+.toggle, .back-btn {
+    position: absolute;
+}
+
+.record-card {
+    left: 7.5521%;
+    top: 6.2963%;
+    width: 39.5833%;
+    height: 87.3148%;
+    z-index: 1;
+}
+.count-card {
+    left: 52.8646%;
+    top: 6.2963%;
+    width: 39.5833%;
+    height: 87.3148%;
+    z-index: 1;
+}
+
+.record-inner {
+    left: 9.8958%;
+    top: 9.5370%;
+    width: 34.8958%;
+    height: 14.6296%;
+    z-index: 2;
+}
+.count-inner {
+    left: 55.2083%;
+    top: 9.5370%;
+    width: 34.8958%;
+    height: 14.6296%;
+    z-index: 2;
+}
+
+.title-record {
+    left: 12.1354%;
+    top: 12.0370%;
+    z-index: 3;
+}
+.title-count {
+    left: 57.4479%;
+    top: 12.0370%;
+    z-index: 3;
+}
+
+.toggle { z-index: 4; }
+.toggle-date { left: 12.1354%; top: 18.0556%; width: 14.2188%; height: 3.6111%; }
+.toggle-period { left: 28.2813%; top: 18.0556%; width: 14.2188%; height: 3.6111%; }
+.toggle-period-count { left: 57.4479%; top: 18.0556%; width: 14.2188%; height: 3.6111%; }
+.toggle-count-by { left: 73.5938%; top: 18.0556%; width: 14.2188%; height: 3.6111%; }
+
+.back-btn { left: 88.75%; top: 93.6111%; z-index: 5; }
