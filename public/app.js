@@ -15,6 +15,12 @@ if (currentPath.includes('index.html') || currentPath === '/') {
     const passwordCancelBtn = document.getElementById('password-cancel');
     const recordSection = document.getElementById('record-section');
     const saveViolationBtn = document.getElementById('save-violation');
+    // Login modal elements for admin auth (email/password)
+    const loginModal = document.getElementById('login-modal');
+    const adminEmailInput = document.getElementById('admin-email');
+    const adminPasswordInput = document.getElementById('admin-password');
+    const loginSubmitBtn = document.getElementById('login-submit');
+    const loginCancelBtn = document.getElementById('login-cancel');
 
     const dressCodeOtherCheck = document.getElementById('dress-code-other-check');
     const dressCodeOtherText = document.getElementById('dress-code-other-text');
@@ -48,10 +54,55 @@ if (currentPath.includes('index.html') || currentPath === '/') {
         }
     });
 
-    // 권한 로그인 버튼
+    // 권한 로그인 버튼 → 페이지 이동 대신 로그인 모달 표시
     authBtn.addEventListener('click', () => {
-        window.location.href = 'admin.html';
+        if (loginModal) {
+            loginModal.classList.remove('hidden');
+            // 포커스 편의성
+            if (adminEmailInput) adminEmailInput.focus();
+        } else {
+            // fallback: 기존 동작
+            window.location.href = 'admin.html';
+        }
     });
+
+    // 로그인 모달: 취소
+    if (loginCancelBtn) {
+        loginCancelBtn.addEventListener('click', () => {
+            loginModal.classList.add('hidden');
+            // 클린업
+            if (adminEmailInput) adminEmailInput.value = '';
+            if (adminPasswordInput) adminPasswordInput.value = '';
+        });
+    }
+
+    // 로그인 모달: 로그인 시도 (Firebase Auth 사용)
+    if (loginSubmitBtn) {
+        loginSubmitBtn.addEventListener('click', async () => {
+            const email = adminEmailInput ? adminEmailInput.value.trim() : '';
+            const password = adminPasswordInput ? adminPasswordInput.value : '';
+            if (!email || !password) {
+                alert('이메일과 비밀번호를 모두 입력해주세요.');
+                return;
+            }
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // 로그인 성공 시 모달을 먼저 숨기고 히스토리를 남기지 않고 즉시 이동
+                if (loginModal) {
+                    loginModal.classList.add('hidden');
+                }
+                // 입력값 클린업
+                if (adminEmailInput) adminEmailInput.value = '';
+                if (adminPasswordInput) adminPasswordInput.value = '';
+
+                // 히스토리에 현재 페이지를 남기지 않고 교체
+                window.location.replace('admin.html');
+            } catch (error) {
+                console.error('Admin login failed:', error);
+                alert('로그인 실패');
+            }
+        });
+    }
 
     // '기타' 체크박스 리스너
     dressCodeOtherCheck.addEventListener('change', () => {
@@ -115,39 +166,78 @@ if (currentPath.includes('index.html') || currentPath === '/') {
 
 // --- Admin Page ---
 if (currentPath.includes('admin.html')) {
-    const loginForm = document.getElementById('login-form');
+    const loadingScreen = document.getElementById('loading-screen');
+    const adminContent = document.getElementById('admin-content');
     const adminPanel = document.getElementById('admin-panel');
-    const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
     const datePicker = document.getElementById('date-picker');
     const violationList = document.getElementById('violation-list');
     const excelDownloadBtn = document.getElementById('excel-download');
 
+        // 인증 상태가 결정될 때까지 로딩 화면을 보여주고, 이후 적절한 화면으로 이동/표시
     onAuthStateChanged(auth, user => {
-        if (user && user.email === 'admin@school.kr') {
-            loginForm.classList.add('hidden');
-            adminPanel.classList.remove('hidden');
-            datePicker.valueAsDate = new Date();
-            loadViolations();
-        } else {
-            loginForm.classList.remove('hidden');
-            adminPanel.classList.add('hidden');
+
+        // admin 페이지에서만 실행되도록 체크
+        const loadingScreen = document.getElementById("loading-screen");
+        const adminContent = document.getElementById("admin-content");
+        const adminPanel = document.getElementById("admin-panel");
+        const datePicker = document.getElementById("date-picker");
+
+        // 로딩 화면 숨기기
+        if (loadingScreen) {
+            loadingScreen.style.display = "none";
         }
+
+        // 관리자 인증 확인
+        if (user && user.email === "admin@school.kr") {
+
+            // ⭐ Firebase 인증 확인 후 화면 표시
+            document.body.style.display = "block";
+
+            // 관리자 컨텐츠 표시
+            if (adminContent) {
+                adminContent.classList.remove("hidden");
+            }
+
+            if (adminPanel) {
+                adminPanel.classList.remove("hidden");
+            }
+
+            // 오늘 날짜 자동 설정
+            if (datePicker) {
+                datePicker.valueAsDate = new Date();
+            }
+
+            // 위반 목록 불러오기
+            if (typeof loadViolations === "function") {
+                loadViolations();
+            }
+
+        } else {
+
+            // 로그인 안된 경우 메인 페이지로 이동
+            if (window.location.pathname.includes("admin.html")) {
+                window.location.replace("index.html");
+            }
+
+        }
+
     });
 
-    loginBtn.addEventListener('click', () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        signInWithEmailAndPassword(auth, email, password)
-            .catch(error => {
-                console.error("Login failed:", error);
-                alert('로그인에 실패했습니다. 이메일 또는 비밀번호를 확인하세요.');
-            });
-    });
+    // admin.html에서 로그인 폼을 사용하지 않으므로 관리자 로그인 핸들러는 제거됨
 
-    logoutBtn.addEventListener('click', () => {
-        signOut(auth);
-    });
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                // 로그아웃 후 인덱스 페이지로 이동 (히스토리 교체)
+                window.location.replace('index.html');
+            } catch (error) {
+                console.error('Sign out failed:', error);
+                alert('로그아웃 중 오류가 발생했습니다.');
+            }
+        });
+    }
     
     datePicker.addEventListener('change', loadViolations);
 
