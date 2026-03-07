@@ -181,7 +181,7 @@
 
         <!-- 좌측: 일별 기록 표 (지정 좌표, px 기준) -->
         <div id="daily-table-area" style="position:absolute;left:212px;top:308px;width:626px;height:645px;z-index:6;">
-            <div id="daily-table-inner" style="width:100%;height:100%;overflow:auto;">
+            <div id="daily-table-inner" style="width:100%;height:100%;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;">
                 <div id="daily-table" style="width:100%;height:100%;"></div>
             </div>
             <div style="text-align:right;margin-top:6px;">
@@ -191,7 +191,7 @@
 
         <!-- 우측: 누적 횟수 표 (지정 좌표, px 기준) -->
         <div id="cumulative-table-area" style="position:absolute;left:1082px;top:308px;width:626px;height:645px;z-index:6;">
-            <div id="cumulative-table-inner" style="width:100%;height:100%;overflow:auto;">
+            <div id="cumulative-table-inner" style="width:100%;height:100%;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;">
                 <div id="cumulative-table" style="width:100%;height:100%;"></div>
             </div>
             <div style="text-align:right;margin-top:6px;">

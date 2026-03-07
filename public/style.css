@@ -409,3 +409,63 @@ input:checked + .slider:before { transform: translateX(26px); }
 #daily-table-area td, #cumulative-table-area td {
     max-width: 100%;
 }
+/* Enforce exact pixel boxes (1920x1080 baseline) and table behavior inside them.
+    The HTML contains inline coordinates; CSS here ensures overflow, fonts, z-index,
+    and stable table layout. These rules only affect the two admin table areas. */
+
+/* Container boxes: exact pixel positions and sizes (matches design) */
+#daily-table-area, #cumulative-table-area {
+     position: absolute;
+     box-sizing: border-box;
+     overflow-y: auto;       /* show vertical scrollbar when content overflows */
+     overflow-x: hidden;     /* prevent horizontal overflow */
+     z-index: 6;             /* must be above .record-card and .count-card */
+     background: transparent;
+}
+
+/* Explicit positions/sizes for 1920x1080 baseline. These mirror the inline styles
+    but are declared here so the layout is stable if inline changes are removed. */
+#daily-table-area { left: 212px; top: 308px; width: 626px; height: 645px; }
+#cumulative-table-area { left: 1082px; top: 308px; width: 626px; height: 645px; }
+
+/* Inner wrapper: ensure child fills the box and scrolling happens at the container level */
+#daily-table-inner, #cumulative-table-inner {
+     width: 100%;
+     height: 100%;
+     box-sizing: border-box;
+     overflow-y: auto;
+     overflow-x: hidden;
+}
+
+/* Tables themselves should fit the container and use fixed table layout to stabilize columns. */
+#daily-table-area table, #cumulative-table-area table {
+     width: 100%;
+     border-collapse: collapse;
+     border-spacing: 0;
+     background: transparent;
+     table-layout: fixed; /* enforce stable column widths and predictable wrapping */
+}
+
+/* Typography and cell wrapping: keep text inside cells, allow wrapping where needed.
+    Use overflow-wrap/word-break so long tokens don't overflow the box. */
+#daily-table-area th, #daily-table-area td,
+#cumulative-table-area th, #cumulative-table-area td {
+     color: #737373;
+     font-size: 20px;
+     font-weight: 500;
+     background: transparent;
+     border: none;
+     padding: 6px 8px;
+     box-sizing: border-box;
+     word-break: break-word;
+     overflow-wrap: break-word;
+     white-space: normal; /* allow wrapping */
+}
+
+/* Prevent cells from extending horizontally beyond their column width */
+#daily-table-area td, #cumulative-table-area td {
+     max-width: 100%;
+}
+
+/* Optional: small visual tweak to make table content readable when many rows exist */
+#daily-table-area tr, #cumulative-table-area tr { vertical-align: top; }
