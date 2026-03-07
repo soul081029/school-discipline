@@ -2,7 +2,7 @@
 body {
     font-family: 'Pretendard', sans-serif;
     margin: 0;
-    background-color: #3D403A; /* A complementary dark background */
+    background-color: #FAF9F6; /* A complementary dark background */
     color: #333;
     overflow: hidden; /* Prevent scrolling */
 }
@@ -32,7 +32,7 @@ button {
     top: 3.89vh;
     width: 52.08vw;
     height: 18.52vh;
-    background-color: #9DB394;
+    background-color: #FFF7DA;
     border-radius: 5.2vw;
     display: flex;
     justify-content: center;
@@ -41,7 +41,7 @@ button {
 }
 
 .title-box h1 {
-    color: #E0E4CA;
+    color: #EB8F26;
     font-size: clamp(24px, 2.2vw, 40px);
     font-weight: 700;
     margin: 0;
@@ -79,7 +79,7 @@ button {
 
 #record-section h2, #record-section h3 {
     text-align: center;
-    color: #3D403A;
+    color: #737373;
 }
 #record-section h2{
     font-size: clamp(20px, 1.8vw, 32px);
@@ -97,28 +97,28 @@ button {
     width: 100%;
     padding: 10px;
     margin: 0.5rem 0;
-    border: 1px solid #9DB394;
+    border: 1px solid #737373;
     border-radius: 5px;
     box-sizing: border-box;
     background-color: #FAFFDC;
-    color: #333;
+    color: #737373;
 }
 
 #record-section #dress-code-violations,
 #record-section #electronic-device-violation {
     margin: 1rem 0;
     padding: 1rem;
-    border: 1px solid #9db394a1;
+    border: 1px solid #737373;
     border-radius: 10px;
 }
 #record-section #dress-code-violations label {
     display: block;
     margin-bottom: 0.5rem;
-    color: #3D403A;
+    color: #737373;
 }
 
 #record-section #save-violation {
-    background-color: #9DB394;
+    background-color: #898989;
     color: white;
     border: none;
     padding: 12px 20px;
@@ -129,7 +129,7 @@ button {
     margin-top: auto; /* Push to the bottom */
 }
 #record-section #save-violation:hover {
-    background-color: #899e80;
+    background-color: #898989;
 }
 
 
@@ -140,10 +140,10 @@ button {
     top: 77.96vh;
     width: clamp(80px, 7.8vw, 150px);
     height: clamp(80px, 7.8vw, 150px);
-    background-color: #B8BCA5;
+    background-color: #EB8F26;
     opacity: 0.85;
     border-radius: 50%;
-    color: #3D403A;
+    color: white;
     font-size: clamp(16px, 1.5vw, 28px);
     font-weight: bold;
     display: flex;
@@ -162,7 +162,7 @@ button {
     position: absolute;
     left: 88.75vw;
     top: 5.64vh;
-    color: #FAFFDC;
+    color: #898989;
     font-size: clamp(14px, 1vw, 18px);
     font-weight: 500;
 }
@@ -190,18 +190,18 @@ button {
 }
 
 .modal-content {
-    background: #E0E4CA;
+    background: #FFF7DA;
     width: clamp(280px, 80vw, 350px);
     padding: 24px;
     border-radius: 16px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    color: #3D403A;
+    color: #737373;
 }
 .modal-content h2 {
-    color: #3D403A;
+    color: #737373;
 }
 .modal-content input {
-     background-color: #FAFFDC;
+     background-color: #FFF7DA;
 }
 
 .modal-content button {
@@ -212,17 +212,17 @@ button {
 }
 
 #password-submit {
-    background-color: #9DB394;
+    background-color: #EB8F26;
 }
 #password-submit:hover {
-    background-color: #899e80;
+    background-color: #EB8F26;
 }
 #password-cancel {
-    background-color: #777;
+    background-color: #898989;
     margin-top: 8px;
 }
 #password-cancel:hover {
-    background-color: #666;
+    background-color: #898989;
 }
 
 /* Login Modal for admin email/password (appears in center) */
