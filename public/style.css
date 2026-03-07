@@ -382,13 +382,16 @@ input:checked + .slider:before { transform: translateX(26px); }
 .back-btn { left: 88.75%; top: 93.6111%; z-index: 5; }
 
 /* Tables for admin page fixed areas */
+/* Table area styling - enforce fixed layout and wrapping/ellipsis to keep text inside specified boxes */
 #daily-table-area table, #cumulative-table-area table {
     width: 100%;
     height: 100%;
     border: none; /* no border */
     background: transparent; /* no fill */
     border-radius: 0; /* corner radius 0 */
+    table-layout: fixed; /* enforce column widths and wrapping */
 }
+
 #daily-table-area th, #daily-table-area td, #cumulative-table-area th, #cumulative-table-area td {
     color: #737373;
     font-size: 20px;
@@ -396,9 +399,13 @@ input:checked + .slider:before { transform: translateX(26px); }
     background: transparent;
     border: none;
     padding: 6px 8px;
-}
-#daily-table-area td, #cumulative-table-area td {
-    white-space: nowrap;
+    word-break: break-word;
     overflow: hidden;
-    text-overflow: ellipsis; /* prevent overflow */
+    text-overflow: ellipsis;
+    white-space: normal; /* allow wrapping within cells */
+}
+
+/* Ensure cells don't overflow horizontally and respect table area */
+#daily-table-area td, #cumulative-table-area td {
+    max-width: 100%;
 }

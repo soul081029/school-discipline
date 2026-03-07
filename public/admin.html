@@ -139,11 +139,34 @@
         <div class="title-record">일별 기록 조회</div>
         <div class="title-count">누적 횟수 조회</div>
 
-        <!-- 토글 버튼(레이아웃용, 기능 없음) -->
+        <!-- 토글 버튼(레이아웃용) -->
         <div class="toggle toggle-date">날짜</div>
         <div class="toggle toggle-period">누적 기간</div>
         <div class="toggle toggle-period-count">누적 기간</div>
         <div class="toggle toggle-count-by">누적 횟수 별 조회</div>
+
+        <!-- Dropdowns: appear under toggles; initially hidden -->
+        <div id="dropdown-date" class="toggle-dropdown hidden" style="position:absolute; left:12.1354%; top:22%; z-index:10; background:#fff; border:1px solid #ddd; border-radius:8px; padding:8px;">
+            <input type="date" id="date-picker" />
+        </div>
+
+        <div id="dropdown-daily-period" class="toggle-dropdown hidden" style="position:absolute; left:28.2813%; top:22%; z-index:10; background:#fff; border:1px solid #ddd; border-radius:8px; padding:8px;">
+            <div class="dropdown-option" data-value="전체" style="padding:6px;cursor:pointer;">전체</div>
+            <div class="dropdown-option" data-value="1학기" style="padding:6px;cursor:pointer;">1학기</div>
+            <div class="dropdown-option" data-value="2학기" style="padding:6px;cursor:pointer;">2학기</div>
+        </div>
+
+        <div id="dropdown-cumulative-period" class="toggle-dropdown hidden" style="position:absolute; left:57.4479%; top:22%; z-index:10; background:#fff; border:1px solid #ddd; border-radius:8px; padding:8px;">
+            <div class="dropdown-option" data-value="전체" style="padding:6px;cursor:pointer;">전체</div>
+            <div class="dropdown-option" data-value="1학기" style="padding:6px;cursor:pointer;">1학기</div>
+            <div class="dropdown-option" data-value="2학기" style="padding:6px;cursor:pointer;">2학기</div>
+        </div>
+
+        <div id="dropdown-count-by" class="toggle-dropdown hidden" style="position:absolute; left:73.5938%; top:22%; z-index:10; background:#fff; border:1px solid #ddd; border-radius:8px; padding:8px;">
+            <div class="dropdown-option" data-value="전체" style="padding:6px;cursor:pointer;">전체</div>
+            <div id="option-xcount" class="dropdown-option" data-value="X회 이상" style="padding:6px;cursor:pointer;">X회 이상</div>
+            <div id="xcount-input-wrap" style="display:none;margin-top:6px;"><input id="count-threshold-input" type="number" min="0" placeholder="예: 2" style="width:80px;padding:6px;border-radius:6px;border:1px solid #ddd;" /></div>
+        </div>
 
         <!-- 로딩 스크린 및 관리자 패널 -->
         <div id="loading-screen" style="position:fixed;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.9);z-index:2000;">
@@ -152,38 +175,7 @@
 
         <div id="admin-content" class="hidden">
             <div id="admin-panel" class="hidden" style="position:relative;padding:24px;z-index:100;">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <label for="date-picker" style="font-weight:600;margin-right:4px;color:#737373;">조회 날짜</label>
-                        <input type="date" id="date-picker" />
-                        <label for="daily-period-select" style="margin-left:8px;color:#737373;">누적기간</label>
-                        <select id="daily-period-select" style="padding:6px;border-radius:6px;border:1px solid #ddd;">
-                            <option value="전체">전체</option>
-                            <option value="1학기">1학기</option>
-                            <option value="2학기">2학기</option>
-                        </select>
-                        <button id="excel-download-daily" style="margin-left:8px;padding:6px 10px;border-radius:6px;background:#9DB394;color:#fff;border:none;">엑셀 다운로드(일별)</button>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <label for="cumulative-period-select" style="color:#737373;">누적기간</label>
-                        <select id="cumulative-period-select" style="padding:6px;border-radius:6px;border:1px solid #ddd;">
-                            <option value="전체">전체</option>
-                            <option value="1학기">1학기</option>
-                            <option value="2학기">2학기</option>
-                        </select>
-                        <label for="count-threshold" style="margin-left:8px;color:#737373;">필터(회)</label>
-                        <input id="count-threshold" type="number" min="0" placeholder="예: 2" style="width:80px;padding:6px;border-radius:6px;border:1px solid #ddd;" />
-                        <button id="excel-download-cumulative" style="margin-left:8px;padding:6px 10px;border-radius:6px;background:#9DB394;color:#fff;border:none;">엑셀 다운로드(누적)</button>
-                        <button id="logout-btn" style="margin-left:12px;padding:6px 10px;border-radius:6px;background:#777;color:#fff;border:none;">로그아웃</button>
-                    </div>
-                </div>
-
-                <div style="display:flex;gap:12px;">
-                    <!-- 좌측: 일별 기록(미리보기 영역은 아래의 고정 좌표 영역으로 렌더링) -->
-                    <div style="flex:1;min-width:0"></div>
-                    <!-- 우측: 누적 목록(렌더링 영역은 고정 좌표 영역) -->
-                    <div style="flex:1;min-width:0"></div>
-                </div>
+                <!-- admin panel intentionally minimal; controls are via toggle dropdowns -->
             </div>
         </div>
 
@@ -192,12 +184,18 @@
             <div id="daily-table-inner" style="width:100%;height:100%;overflow:auto;">
                 <div id="daily-table" style="width:100%;height:100%;"></div>
             </div>
+            <div style="text-align:right;margin-top:6px;">
+                <button id="excel-download-daily" style="padding:6px 10px;border-radius:6px;background:#9DB394;color:#fff;border:none;">엑셀 다운로드(일별)</button>
+            </div>
         </div>
 
         <!-- 우측: 누적 횟수 표 (지정 좌표, px 기준) -->
         <div id="cumulative-table-area" style="position:absolute;left:1082px;top:308px;width:626px;height:645px;z-index:6;">
             <div id="cumulative-table-inner" style="width:100%;height:100%;overflow:auto;">
                 <div id="cumulative-table" style="width:100%;height:100%;"></div>
+            </div>
+            <div style="text-align:right;margin-top:6px;">
+                <button id="excel-download-cumulative" style="padding:6px 10px;border-radius:6px;background:#9DB394;color:#fff;border:none;">엑셀 다운로드(누적)</button>
             </div>
         </div>
 

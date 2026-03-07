@@ -170,11 +170,7 @@ if (currentPath.includes('admin.html')) {
     const loadingScreen = document.getElementById('loading-screen');
     const adminContent = document.getElementById('admin-content');
     const adminPanel = document.getElementById('admin-panel');
-    const logoutBtn = document.getElementById('logout-btn');
     const datePicker = document.getElementById('date-picker');
-    const dailyPeriodSelect = document.getElementById('daily-period-select');
-    const cumulativePeriodSelect = document.getElementById('cumulative-period-select');
-    const countThresholdInput = document.getElementById('count-threshold');
 
     const dailyTableContainer = document.getElementById('daily-table');
     const cumulativeTableContainer = document.getElementById('cumulative-table');
@@ -186,111 +182,78 @@ if (currentPath.includes('admin.html')) {
     const togglePeriodCount = document.querySelector('.toggle-period-count');
     const toggleCountBy = document.querySelector('.toggle-count-by');
 
-    // Helper: compute period range based on choice and reference date
-    function computePeriodRange(choice, referenceDate) {
-        // Determine 'selected year' per spec: if month is Jan/Feb, treat as previous academic year
-        const month = referenceDate.getMonth(); // 0..11
-        let year = referenceDate.getFullYear();
-        if (month <= 1) year = year - 1; // Jan/Feb belong to previous academic year
+    // dropdown elements
+    const dropdownDate = document.getElementById('dropdown-date');
+    const dropdownDailyPeriod = document.getElementById('dropdown-daily-period');
+    const dropdownCumulativePeriod = document.getElementById('dropdown-cumulative-period');
+    const dropdownCountBy = document.getElementById('dropdown-count-by');
+    const xcountInputWrap = document.getElementById('xcount-input-wrap');
+    const xcountInput = document.getElementById('count-threshold-input');
 
+    // internal state
+    let dailyPeriodChoice = '전체';
+    let cumulativePeriodChoice = '전체';
+    let countThresholdValue = 0;
+
+    function computePeriodRange(choice, referenceDate) {
+        const month = referenceDate.getMonth();
+        let year = referenceDate.getFullYear();
+        if (month <= 1) year = year - 1;
         let start, end;
         if (choice === '1학기') {
-            start = new Date(year, 2, 1, 0, 0, 0, 0); // Mar 1
-            end = new Date(year, 6, 31, 23, 59, 59, 999); // Jul 31
+            start = new Date(year, 2, 1, 0, 0, 0, 0);
+            end = new Date(year, 6, 31, 23, 59, 59, 999);
         } else if (choice === '2학기') {
-            start = new Date(year, 7, 1, 0, 0, 0, 0); // Aug 1
-            // Feb end of next year
+            start = new Date(year, 7, 1, 0, 0, 0, 0);
             end = new Date(year + 1, 2, 0, 23, 59, 59, 999);
-        } else { // 전체
+        } else {
             start = new Date(year, 2, 1, 0, 0, 0, 0);
             end = new Date(year + 1, 2, 0, 23, 59, 59, 999);
         }
         return { start, end };
     }
 
-    // Auth state handling: show/hide and guard
+    // Auth state
     onAuthStateChanged(auth, user => {
         if (loadingScreen) loadingScreen.style.display = 'none';
-
         if (user && user.email === 'admin@school.kr') {
-            // show admin UI
-            document.body.style.display = 'block';
             if (adminContent) adminContent.classList.remove('hidden');
             if (adminPanel) adminPanel.classList.remove('hidden');
             if (datePicker && !datePicker.value) datePicker.valueAsDate = new Date();
-
-            // initial loads
             loadViolations();
             loadCumulative();
         } else {
-            if (window.location.pathname.includes('admin.html')) {
-                window.location.replace('index.html');
-            }
+            if (window.location.pathname.includes('admin.html')) window.location.replace('index.html');
         }
     });
 
-    // Logout
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                window.location.replace('index.html');
-            } catch (err) {
-                console.error('Sign out failed:', err);
-                alert('로그아웃 중 오류가 발생했습니다.');
-            }
+    // Dropdown helpers
+    function hideAllDropdowns() {
+        [dropdownDate, dropdownDailyPeriod, dropdownCumulativePeriod, dropdownCountBy].forEach(d => { if (d) d.classList.add('hidden'); });
+    }
+
+    if (toggleDate && dropdownDate) toggleDate.addEventListener('click', () => { const was = dropdownDate.classList.contains('hidden'); hideAllDropdowns(); if (was) dropdownDate.classList.remove('hidden'); });
+    if (togglePeriod && dropdownDailyPeriod) togglePeriod.addEventListener('click', () => { const was = dropdownDailyPeriod.classList.contains('hidden'); hideAllDropdowns(); if (was) dropdownDailyPeriod.classList.remove('hidden'); });
+    if (togglePeriodCount && dropdownCumulativePeriod) togglePeriodCount.addEventListener('click', () => { const was = dropdownCumulativePeriod.classList.contains('hidden'); hideAllDropdowns(); if (was) dropdownCumulativePeriod.classList.remove('hidden'); });
+    if (toggleCountBy && dropdownCountBy) toggleCountBy.addEventListener('click', () => { const was = dropdownCountBy.classList.contains('hidden'); hideAllDropdowns(); if (was) dropdownCountBy.classList.remove('hidden'); });
+
+    function attachDropdownOptions(dropdownEl, handler) {
+        if (!dropdownEl) return;
+        dropdownEl.querySelectorAll('.dropdown-option').forEach(opt => {
+            opt.addEventListener('click', () => { handler(opt.getAttribute('data-value')); dropdownEl.classList.add('hidden'); });
         });
     }
 
-    // Toggle behaviors: connect existing toggle UI to controls
-    if (toggleDate && datePicker) {
-        toggleDate.addEventListener('click', () => {
-            // focus/open date input
-            datePicker.focus();
-            // ensure default
-            if (!datePicker.value) datePicker.valueAsDate = new Date();
-        });
-    }
+    attachDropdownOptions(dropdownDailyPeriod, (v) => { dailyPeriodChoice = v || '전체'; loadViolations(); });
+    attachDropdownOptions(dropdownCumulativePeriod, (v) => { cumulativePeriodChoice = v || '전체'; loadCumulative(); });
+    attachDropdownOptions(dropdownCountBy, (v) => {
+        if (v === 'X회 이상') { if (xcountInputWrap) xcountInputWrap.style.display = 'block'; if (xcountInput) xcountInput.focus(); }
+        else { countThresholdValue = 0; if (xcountInputWrap) xcountInputWrap.style.display = 'none'; loadCumulative(); }
+    });
+    if (xcountInput) xcountInput.addEventListener('input', () => { const v = parseInt(xcountInput.value,10); countThresholdValue = Number.isFinite(v) ? v : 0; loadCumulative(); });
+    if (datePicker) datePicker.addEventListener('change', () => { hideAllDropdowns(); loadViolations(); });
 
-    if (togglePeriod && dailyPeriodSelect) {
-        // cycle through options on click
-        togglePeriod.addEventListener('click', () => {
-            const opts = ['전체','1학기','2학기'];
-            const cur = dailyPeriodSelect.value || '전체';
-            const idx = (opts.indexOf(cur) + 1) % opts.length;
-            dailyPeriodSelect.value = opts[idx];
-            loadViolations();
-        });
-    }
-
-    if (togglePeriodCount && cumulativePeriodSelect) {
-        togglePeriodCount.addEventListener('click', () => {
-            const opts = ['전체','1학기','2학기'];
-            const cur = cumulativePeriodSelect.value || '전체';
-            const idx = (opts.indexOf(cur) + 1) % opts.length;
-            cumulativePeriodSelect.value = opts[idx];
-            loadCumulative();
-        });
-    }
-
-    if (toggleCountBy && countThresholdInput) {
-        toggleCountBy.addEventListener('click', () => {
-            // Toggle visibility: if empty -> prompt for number, else clear
-            if (!countThresholdInput.value) {
-                countThresholdInput.focus();
-            } else {
-                countThresholdInput.value = '';
-                loadCumulative();
-            }
-        });
-    }
-
-    if (dailyPeriodSelect) dailyPeriodSelect.addEventListener('change', loadViolations);
-    if (datePicker) datePicker.addEventListener('change', loadViolations);
-    if (cumulativePeriodSelect) cumulativePeriodSelect.addEventListener('change', loadCumulative);
-    if (countThresholdInput) countThresholdInput.addEventListener('input', loadCumulative);
-
-    // Excel buttons
+    // Excel handlers (use existing logic)
     if (excelDownloadDailyBtn) {
         excelDownloadDailyBtn.addEventListener('click', async () => {
             try {
@@ -307,11 +270,9 @@ if (currentPath.includes('admin.html')) {
                 const qs = await getDocs(q);
                 const rows = [];
 
-                // prepare period for cumulative counts
-                const periodChoice = (dailyPeriodSelect && dailyPeriodSelect.value) || '전체';
+                const periodChoice = dailyPeriodChoice || '전체';
                 const { start: pStart, end: pEnd } = computePeriodRange(periodChoice, new Date(datePicker.value));
 
-                // fetch period all docs for counts
                 const qPeriod = query(
                     collection(db,'violations'),
                     where('timestamp','>=', Timestamp.fromDate(pStart)),
@@ -357,7 +318,7 @@ if (currentPath.includes('admin.html')) {
     if (excelDownloadCumulativeBtn) {
         excelDownloadCumulativeBtn.addEventListener('click', async () => {
             try {
-                const periodChoice = (cumulativePeriodSelect && cumulativePeriodSelect.value) || '전체';
+                const periodChoice = cumulativePeriodChoice || '전체';
                 const refDate = datePicker && datePicker.value ? new Date(datePicker.value) : new Date();
                 const { start, end } = computePeriodRange(periodChoice, refDate);
 
@@ -404,11 +365,9 @@ if (currentPath.includes('admin.html')) {
             const startOfDay = new Date(selectedDate.setHours(0,0,0,0));
             const endOfDay = new Date(selectedDate.setHours(23,59,59,999));
 
-            // period for cumulative counts
-            const periodChoice = (dailyPeriodSelect && dailyPeriodSelect.value) || '전체';
+            const periodChoice = dailyPeriodChoice || '전체';
             const { start: pStart, end: pEnd } = computePeriodRange(periodChoice, new Date(datePicker.value));
 
-            // fetch period snapshot for counts
             const qPeriod = query(
                 collection(db,'violations'),
                 where('timestamp','>=', Timestamp.fromDate(pStart)),
@@ -424,7 +383,6 @@ if (currentPath.includes('admin.html')) {
                 if (r.deviceViolations && r.deviceViolations.length) counts[id].device++;
             });
 
-            // fetch day snapshot
             const qDay = query(
                 collection(db,'violations'),
                 where('timestamp','>=', Timestamp.fromDate(startOfDay)),
@@ -432,12 +390,11 @@ if (currentPath.includes('admin.html')) {
             );
             const daySnap = await getDocs(qDay);
 
-            // render into left table area
             dailyTableContainer.innerHTML = '';
             const table = document.createElement('table');
             table.style.width = '100%';
             table.style.borderCollapse = 'collapse';
-            // header
+            table.style.tableLayout = 'fixed';
             const thead = document.createElement('thead');
             const hrow = document.createElement('tr');
             ['날짜','학번','이름','복장 위반','무단 전자기기 사용'].forEach(h => {
@@ -450,35 +407,24 @@ if (currentPath.includes('admin.html')) {
                 th.style.padding = '6px 8px';
                 hrow.appendChild(th);
             });
-            thead.appendChild(hrow);
-            table.appendChild(thead);
+            thead.appendChild(hrow); table.appendChild(thead);
 
             const tbody = document.createElement('tbody');
             daySnap.forEach(s => {
                 const r = s.data();
                 const tr = document.createElement('tr');
-                const dateCell = document.createElement('td');
-                dateCell.textContent = new Date(r.timestamp.seconds * 1000).toLocaleDateString();
-                dateCell.style.padding = '6px 8px';
-
+                const dateCell = document.createElement('td'); dateCell.textContent = new Date(r.timestamp.seconds * 1000).toLocaleDateString(); dateCell.style.padding = '6px 8px';
                 const idCell = document.createElement('td'); idCell.textContent = r.studentId || ''; idCell.style.padding='6px 8px';
                 const nameCell = document.createElement('td'); nameCell.textContent = r.studentName || ''; nameCell.style.padding='6px 8px';
-
-                const dressText = (r.dressCodeViolations || []).join(', ') + (r.dressCodeOther ? ((r.dressCodeViolations && r.dressCodeViolations.length) ? ', ' : '') + r.dressCodeOther : '');
-                const dressCount = counts[r.studentId] ? counts[r.studentId].dress : 0;
-                const dressCell = document.createElement('td'); dressCell.textContent = `${dressText || '없음'} (${dressCount}회)`; dressCell.style.padding='6px 8px';
-
-                const deviceText = (r.deviceViolations || []).join(', ') + (r.deviceOther ? ((r.deviceViolations && r.deviceViolations.length) ? ', ' : '') + r.deviceOther : '');
-                const deviceCount = counts[r.studentId] ? counts[r.studentId].device : 0;
-                const deviceCell = document.createElement('td'); deviceCell.textContent = `${deviceText || '없음'} (${deviceCount}회)`; deviceCell.style.padding='6px 8px';
-
-                [dateCell,idCell,nameCell,dressCell,deviceCell].forEach(c => { c.style.color='#737373'; c.style.fontSize='20px'; c.style.fontWeight='500'; });
-
+                const dressText = (r.dressCodeViolations || []).join(', ') + (r.dressCodeOther ? (r.dressCodeViolations && r.dressCodeViolations.length ? ', ' : '') + r.dressCodeOther : '');
+                const dressCount = counts[r.studentId] ? counts[r.studentId].dress : 0; const dressCell = document.createElement('td'); dressCell.textContent = `${dressText || '없음'} (${dressCount}회)`; dressCell.style.padding='6px 8px';
+                const deviceText = (r.deviceViolations || []).join(', ') + (r.deviceOther ? (r.deviceViolations && r.deviceViolations.length ? ', ' : '') + r.deviceOther : '');
+                const deviceCount = counts[r.studentId] ? counts[r.studentId].device : 0; const deviceCell = document.createElement('td'); deviceCell.textContent = `${deviceText || '없음'} (${deviceCount}회)`; deviceCell.style.padding='6px 8px';
+                [dateCell,idCell,nameCell,dressCell,deviceCell].forEach(c => { c.style.color='#737373'; c.style.fontSize='20px'; c.style.fontWeight='500'; c.style.wordBreak='break-word'; c.style.overflow='hidden'; c.style.textOverflow='ellipsis'; });
                 tr.appendChild(dateCell); tr.appendChild(idCell); tr.appendChild(nameCell); tr.appendChild(dressCell); tr.appendChild(deviceCell);
                 tbody.appendChild(tr);
             });
-            table.appendChild(tbody);
-            dailyTableContainer.appendChild(table);
+            table.appendChild(tbody); dailyTableContainer.appendChild(table);
 
         } catch (err) {
             console.error('loadViolations error', err);
@@ -490,7 +436,7 @@ if (currentPath.includes('admin.html')) {
     async function loadCumulative() {
         try {
             if (!cumulativeTableContainer) return;
-            const periodChoice = (cumulativePeriodSelect && cumulativePeriodSelect.value) || '전체';
+            const periodChoice = cumulativePeriodChoice || '전체';
             const refDate = datePicker && datePicker.value ? new Date(datePicker.value) : new Date();
             const { start, end } = computePeriodRange(periodChoice, refDate);
 
@@ -509,13 +455,11 @@ if (currentPath.includes('admin.html')) {
                 if (r.deviceViolations && r.deviceViolations.length) map[id].device++;
             });
 
-            // apply threshold filter
-            const threshold = countThresholdInput && countThresholdInput.value ? parseInt(countThresholdInput.value,10) : 0;
+            const threshold = countThresholdValue || 0;
 
             let rows = Object.keys(map).map(k => ({ id: k, name: map[k].studentName, dress: map[k].dress, device: map[k].device }));
             if (threshold > 0) rows = rows.filter(r => (r.dress >= threshold) || (r.device >= threshold));
 
-            // sort by 학번 asc, then 이름
             rows.sort((a,b) => {
                 const na = a.id || '';
                 const nb = b.id || '';
@@ -523,25 +467,23 @@ if (currentPath.includes('admin.html')) {
                 return (a.name || '').localeCompare(b.name || '');
             });
 
-            // render table
             cumulativeTableContainer.innerHTML = '';
-            const table = document.createElement('table'); table.style.width='100%'; table.style.borderCollapse='collapse';
+            const table = document.createElement('table'); table.style.width='100%'; table.style.borderCollapse='collapse'; table.style.tableLayout='fixed';
             const thead = document.createElement('thead'); const hrow = document.createElement('tr');
             ['학번','이름','복장 누적','전자 누적'].forEach(h => { const th = document.createElement('th'); th.textContent=h; th.style.color='#737373'; th.style.fontSize='20px'; th.style.fontWeight='500'; th.style.padding='6px 8px'; hrow.appendChild(th); });
             thead.appendChild(hrow); table.appendChild(thead);
             const tbody = document.createElement('tbody');
             rows.forEach(r => {
                 const tr = document.createElement('tr');
-                const idCell = document.createElement('td'); idCell.textContent = r.id; idCell.style.padding='6px 8px';
-                const nameCell = document.createElement('td'); nameCell.textContent = r.name; nameCell.style.padding='6px 8px';
+                const idCell = document.createElement('td'); idCell.textContent = r.id; idCell.style.padding='6px 8px'; idCell.style.wordBreak='break-word';
+                const nameCell = document.createElement('td'); nameCell.textContent = r.name; nameCell.style.padding='6px 8px'; nameCell.style.wordBreak='break-word';
                 const dressCell = document.createElement('td'); dressCell.textContent = `${r.dress}회`; dressCell.style.padding='6px 8px';
                 const deviceCell = document.createElement('td'); deviceCell.textContent = `${r.device}회`; deviceCell.style.padding='6px 8px';
-                [idCell,nameCell,dressCell,deviceCell].forEach(c=>{ c.style.color='#737373'; c.style.fontSize='20px'; c.style.fontWeight='500'; });
+                [idCell,nameCell,dressCell,deviceCell].forEach(c=>{ c.style.color='#737373'; c.style.fontSize='20px'; c.style.fontWeight='500'; c.style.overflow='hidden'; c.style.textOverflow='ellipsis'; });
                 tr.appendChild(idCell); tr.appendChild(nameCell); tr.appendChild(dressCell); tr.appendChild(deviceCell);
                 tbody.appendChild(tr);
             });
-            table.appendChild(tbody);
-            cumulativeTableContainer.appendChild(table);
+            table.appendChild(tbody); cumulativeTableContainer.appendChild(table);
 
         } catch (err) {
             console.error('loadCumulative error', err);
@@ -551,7 +493,6 @@ if (currentPath.includes('admin.html')) {
 
     // Back button -> go to main
     const backBtn = document.querySelector('.back-btn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => window.location.replace('index.html'));
-    }
+    if (backBtn) backBtn.addEventListener('click', () => window.location.replace('index.html'));
+
 }
