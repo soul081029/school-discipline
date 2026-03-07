@@ -166,196 +166,392 @@ if (currentPath.includes('index.html') || currentPath === '/') {
 
 // --- Admin Page ---
 if (currentPath.includes('admin.html')) {
+    // DOM references
     const loadingScreen = document.getElementById('loading-screen');
     const adminContent = document.getElementById('admin-content');
     const adminPanel = document.getElementById('admin-panel');
     const logoutBtn = document.getElementById('logout-btn');
     const datePicker = document.getElementById('date-picker');
-    const violationList = document.getElementById('violation-list');
-    const excelDownloadBtn = document.getElementById('excel-download');
+    const dailyPeriodSelect = document.getElementById('daily-period-select');
+    const cumulativePeriodSelect = document.getElementById('cumulative-period-select');
+    const countThresholdInput = document.getElementById('count-threshold');
 
-        // 인증 상태가 결정될 때까지 로딩 화면을 보여주고, 이후 적절한 화면으로 이동/표시
+    const dailyTableContainer = document.getElementById('daily-table');
+    const cumulativeTableContainer = document.getElementById('cumulative-table');
+    const excelDownloadDailyBtn = document.getElementById('excel-download-daily');
+    const excelDownloadCumulativeBtn = document.getElementById('excel-download-cumulative');
+
+    const toggleDate = document.querySelector('.toggle-date');
+    const togglePeriod = document.querySelector('.toggle-period');
+    const togglePeriodCount = document.querySelector('.toggle-period-count');
+    const toggleCountBy = document.querySelector('.toggle-count-by');
+
+    // Helper: compute period range based on choice and reference date
+    function computePeriodRange(choice, referenceDate) {
+        // Determine 'selected year' per spec: if month is Jan/Feb, treat as previous academic year
+        const month = referenceDate.getMonth(); // 0..11
+        let year = referenceDate.getFullYear();
+        if (month <= 1) year = year - 1; // Jan/Feb belong to previous academic year
+
+        let start, end;
+        if (choice === '1학기') {
+            start = new Date(year, 2, 1, 0, 0, 0, 0); // Mar 1
+            end = new Date(year, 6, 31, 23, 59, 59, 999); // Jul 31
+        } else if (choice === '2학기') {
+            start = new Date(year, 7, 1, 0, 0, 0, 0); // Aug 1
+            // Feb end of next year
+            end = new Date(year + 1, 2, 0, 23, 59, 59, 999);
+        } else { // 전체
+            start = new Date(year, 2, 1, 0, 0, 0, 0);
+            end = new Date(year + 1, 2, 0, 23, 59, 59, 999);
+        }
+        return { start, end };
+    }
+
+    // Auth state handling: show/hide and guard
     onAuthStateChanged(auth, user => {
+        if (loadingScreen) loadingScreen.style.display = 'none';
 
-        // admin 페이지에서만 실행되도록 체크
-        const loadingScreen = document.getElementById("loading-screen");
-        const adminContent = document.getElementById("admin-content");
-        const adminPanel = document.getElementById("admin-panel");
-        const datePicker = document.getElementById("date-picker");
+        if (user && user.email === 'admin@school.kr') {
+            // show admin UI
+            document.body.style.display = 'block';
+            if (adminContent) adminContent.classList.remove('hidden');
+            if (adminPanel) adminPanel.classList.remove('hidden');
+            if (datePicker && !datePicker.value) datePicker.valueAsDate = new Date();
 
-        // 로딩 화면 숨기기
-        if (loadingScreen) {
-            loadingScreen.style.display = "none";
-        }
-
-        // 관리자 인증 확인
-        if (user && user.email === "admin@school.kr") {
-
-            // ⭐ Firebase 인증 확인 후 화면 표시
-            document.body.style.display = "block";
-
-            // 관리자 컨텐츠 표시
-            if (adminContent) {
-                adminContent.classList.remove("hidden");
-            }
-
-            if (adminPanel) {
-                adminPanel.classList.remove("hidden");
-            }
-
-            // 오늘 날짜 자동 설정
-            if (datePicker) {
-                datePicker.valueAsDate = new Date();
-            }
-
-            // 위반 목록 불러오기
-            if (typeof loadViolations === "function") {
-                loadViolations();
-            }
-
+            // initial loads
+            loadViolations();
+            loadCumulative();
         } else {
-
-            // 로그인 안된 경우 메인 페이지로 이동
-            if (window.location.pathname.includes("admin.html")) {
-                window.location.replace("index.html");
+            if (window.location.pathname.includes('admin.html')) {
+                window.location.replace('index.html');
             }
-
         }
-
     });
 
-    // admin.html에서 로그인 폼을 사용하지 않으므로 관리자 로그인 핸들러는 제거됨
-
+    // Logout
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                // 로그아웃 후 인덱스 페이지로 이동 (히스토리 교체)
                 window.location.replace('index.html');
-            } catch (error) {
-                console.error('Sign out failed:', error);
+            } catch (err) {
+                console.error('Sign out failed:', err);
                 alert('로그아웃 중 오류가 발생했습니다.');
             }
         });
     }
-    
-    if (datePicker) {
-        datePicker.addEventListener('change', loadViolations);
+
+    // Toggle behaviors: connect existing toggle UI to controls
+    if (toggleDate && datePicker) {
+        toggleDate.addEventListener('click', () => {
+            // focus/open date input
+            datePicker.focus();
+            // ensure default
+            if (!datePicker.value) datePicker.valueAsDate = new Date();
+        });
     }
 
+    if (togglePeriod && dailyPeriodSelect) {
+        // cycle through options on click
+        togglePeriod.addEventListener('click', () => {
+            const opts = ['전체','1학기','2학기'];
+            const cur = dailyPeriodSelect.value || '전체';
+            const idx = (opts.indexOf(cur) + 1) % opts.length;
+            dailyPeriodSelect.value = opts[idx];
+            loadViolations();
+        });
+    }
+
+    if (togglePeriodCount && cumulativePeriodSelect) {
+        togglePeriodCount.addEventListener('click', () => {
+            const opts = ['전체','1학기','2학기'];
+            const cur = cumulativePeriodSelect.value || '전체';
+            const idx = (opts.indexOf(cur) + 1) % opts.length;
+            cumulativePeriodSelect.value = opts[idx];
+            loadCumulative();
+        });
+    }
+
+    if (toggleCountBy && countThresholdInput) {
+        toggleCountBy.addEventListener('click', () => {
+            // Toggle visibility: if empty -> prompt for number, else clear
+            if (!countThresholdInput.value) {
+                countThresholdInput.focus();
+            } else {
+                countThresholdInput.value = '';
+                loadCumulative();
+            }
+        });
+    }
+
+    if (dailyPeriodSelect) dailyPeriodSelect.addEventListener('change', loadViolations);
+    if (datePicker) datePicker.addEventListener('change', loadViolations);
+    if (cumulativePeriodSelect) cumulativePeriodSelect.addEventListener('change', loadCumulative);
+    if (countThresholdInput) countThresholdInput.addEventListener('input', loadCumulative);
+
+    // Excel buttons
+    if (excelDownloadDailyBtn) {
+        excelDownloadDailyBtn.addEventListener('click', async () => {
+            try {
+                if (!datePicker) { alert('날짜를 선택해주세요.'); return; }
+                const selectedDate = new Date(datePicker.value);
+                const startOfDay = new Date(selectedDate.setHours(0,0,0,0));
+                const endOfDay = new Date(selectedDate.setHours(23,59,59,999));
+
+                const q = query(
+                    collection(db,'violations'),
+                    where('timestamp','>=', Timestamp.fromDate(startOfDay)),
+                    where('timestamp','<=', Timestamp.fromDate(endOfDay))
+                );
+                const qs = await getDocs(q);
+                const rows = [];
+
+                // prepare period for cumulative counts
+                const periodChoice = (dailyPeriodSelect && dailyPeriodSelect.value) || '전체';
+                const { start: pStart, end: pEnd } = computePeriodRange(periodChoice, new Date(datePicker.value));
+
+                // fetch period all docs for counts
+                const qPeriod = query(
+                    collection(db,'violations'),
+                    where('timestamp','>=', Timestamp.fromDate(pStart)),
+                    where('timestamp','<=', Timestamp.fromDate(pEnd))
+                );
+                const periodSnap = await getDocs(qPeriod);
+                const counts = {};
+                periodSnap.forEach(s => {
+                    const r = s.data();
+                    const id = r.studentId || '';
+                    if (!counts[id]) counts[id] = { dress:0, device:0 };
+                    if (r.dressCodeViolations && r.dressCodeViolations.length) counts[id].dress++;
+                    if (r.deviceViolations && r.deviceViolations.length) counts[id].device++;
+                });
+
+                qs.forEach(s => {
+                    const r = s.data();
+                    const dressDetails = (r.dressCodeViolations || []).join(', ') + (r.dressCodeOther ? (r.dressCodeViolations && r.dressCodeViolations.length ? ', ' : '') + r.dressCodeOther : '');
+                    const deviceDetails = (r.deviceViolations || []).join(', ') + (r.deviceOther ? (r.deviceViolations && r.deviceViolations.length ? ', ' : '') + r.deviceOther : '');
+                    rows.push({
+                        '날짜': new Date(r.timestamp.seconds * 1000).toLocaleDateString(),
+                        '학번': r.studentId || '',
+                        '이름': r.studentName || '',
+                        '복장 위반': dressDetails || '',
+                        '복장 누적': counts[r.studentId] ? `${counts[r.studentId].dress}회` : '0회',
+                        '전자기기': deviceDetails || '',
+                        '전자 누적': counts[r.studentId] ? `${counts[r.studentId].device}회` : '0회'
+                    });
+                });
+
+                if (!rows.length) { alert('해당 날짜에 데이터가 없습니다.'); return; }
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, '일별');
+                XLSX.writeFile(wb, `위반기록_일별_${datePicker.value}.xlsx`);
+            } catch (err) {
+                console.error('엑셀 생성 실패', err);
+                alert('엑셀 생성 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+            }
+        });
+    }
+
+    if (excelDownloadCumulativeBtn) {
+        excelDownloadCumulativeBtn.addEventListener('click', async () => {
+            try {
+                const periodChoice = (cumulativePeriodSelect && cumulativePeriodSelect.value) || '전체';
+                const refDate = datePicker && datePicker.value ? new Date(datePicker.value) : new Date();
+                const { start, end } = computePeriodRange(periodChoice, refDate);
+
+                const qPeriod = query(
+                    collection(db,'violations'),
+                    where('timestamp','>=', Timestamp.fromDate(start)),
+                    where('timestamp','<=', Timestamp.fromDate(end))
+                );
+                const snap = await getDocs(qPeriod);
+                const map = {};
+                snap.forEach(s => {
+                    const r = s.data();
+                    const id = r.studentId || '';
+                    if (!map[id]) map[id] = { studentName: r.studentName || '', dress:0, device:0 };
+                    if (r.dressCodeViolations && r.dressCodeViolations.length) map[id].dress++;
+                    if (r.deviceViolations && r.deviceViolations.length) map[id].device++;
+                });
+
+                const rows = Object.keys(map).map(k => ({
+                    '학번': k,
+                    '이름': map[k].studentName,
+                    '복장 누적': `${map[k].dress}회`,
+                    '전자 누적': `${map[k].device}회`
+                }));
+
+                if (!rows.length) { alert('해당 기간에 데이터가 없습니다.'); return; }
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, '누적');
+                const fn = `위반기록_누적_${periodChoice}_${(new Date()).toISOString().slice(0,10)}.xlsx`;
+                XLSX.writeFile(wb, fn);
+            } catch (err) {
+                console.error('누적 엑셀 실패', err);
+                alert('엑셀 생성 중 오류가 발생했습니다.');
+            }
+        });
+    }
+
+    // Load daily list + compute cumulative counts for selected daily period
     async function loadViolations() {
         try {
-            if (!datePicker || !violationList) return;
+            if (!datePicker || !dailyTableContainer) return;
             const selectedDate = new Date(datePicker.value);
-            const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
-            const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
+            const startOfDay = new Date(selectedDate.setHours(0,0,0,0));
+            const endOfDay = new Date(selectedDate.setHours(23,59,59,999));
 
-            const q = query(
-                collection(db, 'violations'),
-                where('timestamp', '>=', Timestamp.fromDate(startOfDay)),
-                where('timestamp', '<=', Timestamp.fromDate(endOfDay))
+            // period for cumulative counts
+            const periodChoice = (dailyPeriodSelect && dailyPeriodSelect.value) || '전체';
+            const { start: pStart, end: pEnd } = computePeriodRange(periodChoice, new Date(datePicker.value));
+
+            // fetch period snapshot for counts
+            const qPeriod = query(
+                collection(db,'violations'),
+                where('timestamp','>=', Timestamp.fromDate(pStart)),
+                where('timestamp','<=', Timestamp.fromDate(pEnd))
             );
-
-            const querySnapshot = await getDocs(q);
-            if (violationList) violationList.innerHTML = '';
-            querySnapshot.forEach(docSnap => {
-                renderViolation(docSnap.id, docSnap.data());
+            const periodSnap = await getDocs(qPeriod);
+            const counts = {};
+            periodSnap.forEach(s => {
+                const r = s.data();
+                const id = r.studentId || '';
+                if (!counts[id]) counts[id] = { dress:0, device:0 };
+                if (r.dressCodeViolations && r.dressCodeViolations.length) counts[id].dress++;
+                if (r.deviceViolations && r.deviceViolations.length) counts[id].device++;
             });
 
-        } catch (error) {
-            console.error("🔥 불러오기 오류:", error);
-            alert("데이터를 불러오지 못했습니다. 콘솔을 확인하세요.");
+            // fetch day snapshot
+            const qDay = query(
+                collection(db,'violations'),
+                where('timestamp','>=', Timestamp.fromDate(startOfDay)),
+                where('timestamp','<=', Timestamp.fromDate(endOfDay))
+            );
+            const daySnap = await getDocs(qDay);
+
+            // render into left table area
+            dailyTableContainer.innerHTML = '';
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            // header
+            const thead = document.createElement('thead');
+            const hrow = document.createElement('tr');
+            ['날짜','학번','이름','복장 위반','무단 전자기기 사용'].forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                th.style.color = '#737373';
+                th.style.fontSize = '20px';
+                th.style.fontWeight = '500';
+                th.style.textAlign = 'left';
+                th.style.padding = '6px 8px';
+                hrow.appendChild(th);
+            });
+            thead.appendChild(hrow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            daySnap.forEach(s => {
+                const r = s.data();
+                const tr = document.createElement('tr');
+                const dateCell = document.createElement('td');
+                dateCell.textContent = new Date(r.timestamp.seconds * 1000).toLocaleDateString();
+                dateCell.style.padding = '6px 8px';
+
+                const idCell = document.createElement('td'); idCell.textContent = r.studentId || ''; idCell.style.padding='6px 8px';
+                const nameCell = document.createElement('td'); nameCell.textContent = r.studentName || ''; nameCell.style.padding='6px 8px';
+
+                const dressText = (r.dressCodeViolations || []).join(', ') + (r.dressCodeOther ? ((r.dressCodeViolations && r.dressCodeViolations.length) ? ', ' : '') + r.dressCodeOther : '');
+                const dressCount = counts[r.studentId] ? counts[r.studentId].dress : 0;
+                const dressCell = document.createElement('td'); dressCell.textContent = `${dressText || '없음'} (${dressCount}회)`; dressCell.style.padding='6px 8px';
+
+                const deviceText = (r.deviceViolations || []).join(', ') + (r.deviceOther ? ((r.deviceViolations && r.deviceViolations.length) ? ', ' : '') + r.deviceOther : '');
+                const deviceCount = counts[r.studentId] ? counts[r.studentId].device : 0;
+                const deviceCell = document.createElement('td'); deviceCell.textContent = `${deviceText || '없음'} (${deviceCount}회)`; deviceCell.style.padding='6px 8px';
+
+                [dateCell,idCell,nameCell,dressCell,deviceCell].forEach(c => { c.style.color='#737373'; c.style.fontSize='20px'; c.style.fontWeight='500'; });
+
+                tr.appendChild(dateCell); tr.appendChild(idCell); tr.appendChild(nameCell); tr.appendChild(dressCell); tr.appendChild(deviceCell);
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            dailyTableContainer.appendChild(table);
+
+        } catch (err) {
+            console.error('loadViolations error', err);
+            alert('일별 데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인하세요.');
         }
     }
 
-    function renderViolation(id, data) {
-        const li = document.createElement('li');
-        
-        let dressDetails = (data.dressCodeViolations || []).join(', ');
-        if (data.dressCodeOther) {
-            dressDetails += (dressDetails ? ', ' : '') + `기타 (${data.dressCodeOther})`;
-        }
-        if (!dressDetails) dressDetails = '없음';
-
-        let deviceDetails = (data.deviceViolations || []).join(', ');
-        if (data.deviceOther) {
-            deviceDetails += (deviceDetails ? ', ' : '') + `기타 (${data.deviceOther})`;
-        }
-        if (!deviceDetails) deviceDetails = '없음';
-
-        const details = `
-            ${data.studentId} ${data.studentName} 
-            (${new Date(data.timestamp.seconds * 1000).toLocaleTimeString()})
-            - 복장: ${dressDetails}
-            - 전자기기: ${deviceDetails}
-        `;
-        li.innerHTML = `<span>${details}</span>`;
-        
-    const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = '삭제';
-        deleteBtn.onclick = async () => {
-            if(confirm('정말로 삭제하시겠습니까?')) {
-                await deleteDoc(doc(db, 'violations', id));
-                loadViolations(); // Refresh list
-            }
-        };
-        li.appendChild(deleteBtn);
-        if (violationList) violationList.appendChild(li);
-    }
-    
-    if (excelDownloadBtn) {
-        excelDownloadBtn.addEventListener('click', async () => {
+    // Load cumulative aggregated table
+    async function loadCumulative() {
         try {
-            if (!datePicker) { alert('날짜를 선택해주세요.'); return; }
-            const selectedDate = new Date(datePicker.value);
-            const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
-            const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
-            
-            const q = query(
-                collection(db, 'violations'),
-                where('timestamp', '>=', Timestamp.fromDate(startOfDay)),
-                where('timestamp', '<=', Timestamp.fromDate(endOfDay))
+            if (!cumulativeTableContainer) return;
+            const periodChoice = (cumulativePeriodSelect && cumulativePeriodSelect.value) || '전체';
+            const refDate = datePicker && datePicker.value ? new Date(datePicker.value) : new Date();
+            const { start, end } = computePeriodRange(periodChoice, refDate);
+
+            const qPeriod = query(
+                collection(db,'violations'),
+                where('timestamp','>=', Timestamp.fromDate(start)),
+                where('timestamp','<=', Timestamp.fromDate(end))
             );
-
-            const querySnapshot = await getDocs(q);
-            const data = [];
-
-            querySnapshot.forEach(docSnap => {
-                const record = docSnap.data();
-
-                let dressDetails = (record.dressCodeViolations || []).join(', ');
-                if (record.dressCodeOther) {
-                    dressDetails += (dressDetails ? ', ' : '') + `기타 (${record.dressCodeOther})`;
-                }
-
-                let deviceDetails = (record.deviceViolations || []).join(', ');
-                if (record.deviceOther) {
-                    deviceDetails += (deviceDetails ? ', ' : '') + `기타 (${record.deviceOther})`;
-                }
-
-                data.push({
-                    '학번': record.studentId,
-                    '이름': record.studentName,
-                    '시간': new Date(record.timestamp.seconds * 1000).toLocaleString(),
-                    '복장단속': dressDetails || '',
-                    '전자기기': deviceDetails || ''
-                });
+            const snap = await getDocs(qPeriod);
+            const map = {};
+            snap.forEach(s => {
+                const r = s.data();
+                const id = r.studentId || '';
+                if (!map[id]) map[id] = { studentName: r.studentName || '', dress:0, device:0 };
+                if (r.dressCodeViolations && r.dressCodeViolations.length) map[id].dress++;
+                if (r.deviceViolations && r.deviceViolations.length) map[id].device++;
             });
 
-            if (data.length === 0) {
-                alert("해당 날짜에 데이터가 없습니다.");
-                return;
-            }
+            // apply threshold filter
+            const threshold = countThresholdInput && countThresholdInput.value ? parseInt(countThresholdInput.value,10) : 0;
 
-            const worksheet = XLSX.utils.json_to_sheet(data);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, '위반기록');
-            XLSX.writeFile(workbook, `위반기록_${datePicker.value}.xlsx`);
+            let rows = Object.keys(map).map(k => ({ id: k, name: map[k].studentName, dress: map[k].dress, device: map[k].device }));
+            if (threshold > 0) rows = rows.filter(r => (r.dress >= threshold) || (r.device >= threshold));
 
-        } catch (error) {
-            console.error("🔥 엑셀 다운로드 오류:", error);
-            alert("엑셀 다운로드 중 오류가 발생했습니다. 콘솔을 확인하세요.");
+            // sort by 학번 asc, then 이름
+            rows.sort((a,b) => {
+                const na = a.id || '';
+                const nb = b.id || '';
+                if (na !== nb) return na.localeCompare(nb, 'ko');
+                return (a.name || '').localeCompare(b.name || '');
+            });
+
+            // render table
+            cumulativeTableContainer.innerHTML = '';
+            const table = document.createElement('table'); table.style.width='100%'; table.style.borderCollapse='collapse';
+            const thead = document.createElement('thead'); const hrow = document.createElement('tr');
+            ['학번','이름','복장 누적','전자 누적'].forEach(h => { const th = document.createElement('th'); th.textContent=h; th.style.color='#737373'; th.style.fontSize='20px'; th.style.fontWeight='500'; th.style.padding='6px 8px'; hrow.appendChild(th); });
+            thead.appendChild(hrow); table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            rows.forEach(r => {
+                const tr = document.createElement('tr');
+                const idCell = document.createElement('td'); idCell.textContent = r.id; idCell.style.padding='6px 8px';
+                const nameCell = document.createElement('td'); nameCell.textContent = r.name; nameCell.style.padding='6px 8px';
+                const dressCell = document.createElement('td'); dressCell.textContent = `${r.dress}회`; dressCell.style.padding='6px 8px';
+                const deviceCell = document.createElement('td'); deviceCell.textContent = `${r.device}회`; deviceCell.style.padding='6px 8px';
+                [idCell,nameCell,dressCell,deviceCell].forEach(c=>{ c.style.color='#737373'; c.style.fontSize='20px'; c.style.fontWeight='500'; });
+                tr.appendChild(idCell); tr.appendChild(nameCell); tr.appendChild(dressCell); tr.appendChild(deviceCell);
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            cumulativeTableContainer.appendChild(table);
+
+        } catch (err) {
+            console.error('loadCumulative error', err);
+            alert('누적 데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인하세요.');
         }
-        });
+    }
+
+    // Back button -> go to main
+    const backBtn = document.querySelector('.back-btn');
+    if (backBtn) {
+        backBtn.addEventListener('click', () => window.location.replace('index.html'));
     }
 }
