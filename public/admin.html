@@ -180,21 +180,27 @@
         </div>
 
         <!-- 좌측: 일별 기록 표 (지정 좌표, px 기준) -->
-        <div id="daily-table-area" style="position:absolute;left:212px;top:308px;width:626px;height:645px;z-index:6;">
+        <div id="daily-table-area" style="position:absolute;left:11.04%;top:28.52%;width:32.60%;height:59.72%;z-index:6;">
+            <div class="area-controls" style="width:100%;box-sizing:border-box;text-align:center;vertical-align:middle;padding:6px 8px;">
+                <!-- 조회 컨트롤 (토글 UI는 외부에 유지되어 있으므로 필요시 연동) -->
+            </div>
             <div id="daily-table-inner" style="width:100%;height:100%;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;">
                 <div id="daily-table" style="width:100%;height:100%;"></div>
             </div>
-            <div style="text-align:right;margin-top:6px;">
+            <div class="area-excel" style="width:100%;box-sizing:border-box;text-align:right;margin-top:6px;">
                 <button id="excel-download-daily" style="padding:6px 10px;border-radius:6px;background:#9DB394;color:#fff;border:none;">엑셀 다운로드(일별)</button>
             </div>
         </div>
 
         <!-- 우측: 누적 횟수 표 (지정 좌표, px 기준) -->
-        <div id="cumulative-table-area" style="position:absolute;left:1082px;top:308px;width:626px;height:645px;z-index:6;">
+        <div id="cumulative-table-area" style="position:absolute;left:56.35%;top:28.52%;width:32.60%;height:59.72%;z-index:6;">
+            <div class="area-controls" style="width:100%;box-sizing:border-box;text-align:center;vertical-align:middle;padding:6px 8px;">
+                <!-- 조회 컨트롤 (토글 UI는 외부에 유지되어 있으므로 필요시 연동) -->
+            </div>
             <div id="cumulative-table-inner" style="width:100%;height:100%;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;">
                 <div id="cumulative-table" style="width:100%;height:100%;"></div>
             </div>
-            <div style="text-align:right;margin-top:6px;">
+            <div class="area-excel" style="width:100%;box-sizing:border-box;text-align:right;margin-top:6px;">
                 <button id="excel-download-cumulative" style="padding:6px 10px;border-radius:6px;background:#9DB394;color:#fff;border:none;">엑셀 다운로드(누적)</button>
             </div>
         </div>
