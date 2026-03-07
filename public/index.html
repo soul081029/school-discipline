@@ -15,30 +15,25 @@
 
         <div class="checklist-panel">
             <div id="record-section" class="hidden">
-                <!-- 기존 기록 폼 내용은 JS에 의해 제어되므로 구조만 유지 -->
                 <input type="text" id="student-id" placeholder="학번">
                 <input type="text" id="student-name" placeholder="이름">
-                
-                <select id="time-select">
-                    <option value="class-time">수업시간</option>
-                    <option value="break-time">쉬는시간</option>
-                </select>
-                
-                <input type="number" id="class-period" placeholder="교시" class="hidden">
         
                 <div id="dress-code-violations">
-                    <h3>복장 위반</h3>
-                    <label><input type="checkbox" name="dress-code" value="no-uniform"> 교복 미착용</label>
-                    <label><input type="checkbox" name="dress-code" value="modified-uniform"> 교복 변형</label>
-                    <label><input type="checkbox" name="dress-code" value="slippers"> 실내화 미착용</label>
-                    <label><input type="checkbox" name="dress-code" value="accessories"> 액세서리 착용</label>
+                    <h3>복장 단속</h3>
+                    <label><input type="checkbox" name="dress-code" value="교복 미착용 및 교복 변형"> 교복 미착용 및 교복 변형</label>
+                    <label><input type="checkbox" name="dress-code" value="실내화 등교"> 실내화 등교</label>
+                    <label class="other-label">
+                        <input type="checkbox" id="dress-code-other-check"> 기타
+                        <input type="text" id="dress-code-other-text" class="hidden" placeholder="기타 위반사항 입력">
+                    </label>
                 </div>
         
                 <div id="electronic-device-violation">
                     <h3>전자기기 위반</h3>
-                    <label class="switch">
-                        <input type="checkbox" id="device-violation-toggle">
-                        <span class="slider round"></span>
+                    <label><input type="checkbox" name="device-violation" value="무단 전자기기 사용"> 무단 전자기기 사용</label>
+                    <label class="other-label">
+                        <input type="checkbox" id="device-violation-other-check"> 기타
+                        <input type="text" id="device-violation-other-text" class="hidden" placeholder="기타 위반사항 입력">
                     </label>
                 </div>
         
