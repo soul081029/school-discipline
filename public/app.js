@@ -301,8 +301,12 @@ if (currentPath.includes('admin.html')) {
                     const r = s.data();
                     const id = r.studentId || '';
                     if (!counts[id]) counts[id] = { dress:0, device:0 };
-                    if (r.dressCodeViolations && r.dressCodeViolations.length) counts[id].dress++;
-                    if (r.deviceViolations && r.deviceViolations.length) counts[id].device++;
+                    // Count dress-code related entries: include specific violations and '기타' text
+                    const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
+                    if (hasDressViolation) counts[id].dress++;
+                    // Count device-related entries: include device violations and '기타' text
+                    const hasDeviceViolation = (r.deviceViolations && r.deviceViolations.length) || (r.deviceOther && String(r.deviceOther).trim().length > 0);
+                    if (hasDeviceViolation) counts[id].device++;
                 });
 
                 qs.forEach(s => {
@@ -350,8 +354,11 @@ if (currentPath.includes('admin.html')) {
                     const r = s.data();
                     const id = r.studentId || '';
                     if (!map[id]) map[id] = { studentName: r.studentName || '', dress:0, device:0 };
-                    if (r.dressCodeViolations && r.dressCodeViolations.length) map[id].dress++;
-                    if (r.deviceViolations && r.deviceViolations.length) map[id].device++;
+                    // Include '기타' fields in the aggregate counts for dress and device independently
+                    const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
+                    if (hasDressViolation) map[id].dress++;
+                    const hasDeviceViolation = (r.deviceViolations && r.deviceViolations.length) || (r.deviceOther && String(r.deviceOther).trim().length > 0);
+                    if (hasDeviceViolation) map[id].device++;
                 });
 
                 const rows = Object.keys(map).map(k => ({
@@ -396,8 +403,10 @@ if (currentPath.includes('admin.html')) {
                 const r = s.data();
                 const id = r.studentId || '';
                 if (!counts[id]) counts[id] = { dress:0, device:0 };
-                if (r.dressCodeViolations && r.dressCodeViolations.length) counts[id].dress++;
-                if (r.deviceViolations && r.deviceViolations.length) counts[id].device++;
+                const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
+                if (hasDressViolation) counts[id].dress++;
+                const hasDeviceViolation = (r.deviceViolations && r.deviceViolations.length) || (r.deviceOther && String(r.deviceOther).trim().length > 0);
+                if (hasDeviceViolation) counts[id].device++;
             });
 
             const qDay = query(
@@ -468,8 +477,10 @@ if (currentPath.includes('admin.html')) {
                 const r = s.data();
                 const id = r.studentId || '';
                 if (!map[id]) map[id] = { studentName: r.studentName || '', dress:0, device:0 };
-                if (r.dressCodeViolations && r.dressCodeViolations.length) map[id].dress++;
-                if (r.deviceViolations && r.deviceViolations.length) map[id].device++;
+                const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
+                if (hasDressViolation) map[id].dress++;
+                const hasDeviceViolation = (r.deviceViolations && r.deviceViolations.length) || (r.deviceOther && String(r.deviceOther).trim().length > 0);
+                if (hasDeviceViolation) map[id].device++;
             });
 
             const threshold = countThresholdValue || 0;
