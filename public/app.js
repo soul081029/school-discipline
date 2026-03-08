@@ -187,7 +187,6 @@ if (currentPath.includes('admin.html')) {
     const dropdownDailyPeriod = document.getElementById('dropdown-daily-period');
     const dropdownCumulativePeriod = document.getElementById('dropdown-cumulative-period');
     const dropdownCountBy = document.getElementById('dropdown-count-by');
-    const xcountInputWrap = document.getElementById('xcount-input-wrap');
     const xcountInput = document.getElementById('count-threshold-input');
 
     // internal state
@@ -246,10 +245,28 @@ if (currentPath.includes('admin.html')) {
 
     attachDropdownOptions(dropdownDailyPeriod, (v) => { dailyPeriodChoice = v || '전체'; loadViolations(); });
     attachDropdownOptions(dropdownCumulativePeriod, (v) => { cumulativePeriodChoice = v || '전체'; loadCumulative(); });
-    attachDropdownOptions(dropdownCountBy, (v) => {
-        if (v === 'X회 이상') { if (xcountInputWrap) xcountInputWrap.style.display = 'block'; if (xcountInput) xcountInput.focus(); }
-        else { countThresholdValue = 0; if (xcountInputWrap) xcountInputWrap.style.display = 'none'; loadCumulative(); }
-    });
+    // Custom handling for '누적 횟수 별 조회' so the numeric input sits inside the dropdown
+    if (dropdownCountBy) {
+        // Ensure input starts disabled
+        if (xcountInput) xcountInput.disabled = true;
+        dropdownCountBy.querySelectorAll('.dropdown-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                const v = opt.getAttribute('data-value');
+                if (v === 'X회 이상') {
+                    // Enable the input and keep the dropdown open so user can type immediately
+                    if (xcountInput) { xcountInput.disabled = false; xcountInput.focus(); }
+                    // do not hide dropdown here - allow input interaction
+                } else {
+                    // '전체' selected: disable and clear input, apply no threshold
+                    countThresholdValue = 0;
+                    if (xcountInput) { xcountInput.disabled = true; xcountInput.value = ''; }
+                    // close dropdown after selection
+                    dropdownCountBy.classList.add('hidden');
+                    loadCumulative();
+                }
+            });
+        });
+    }
     if (xcountInput) xcountInput.addEventListener('input', () => { const v = parseInt(xcountInput.value,10); countThresholdValue = Number.isFinite(v) ? v : 0; loadCumulative(); });
     if (datePicker) datePicker.addEventListener('change', () => { hideAllDropdowns(); loadViolations(); });
 

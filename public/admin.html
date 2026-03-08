@@ -164,8 +164,10 @@
 
         <div id="dropdown-count-by" class="toggle-dropdown hidden" style="position:absolute; left:73.5938%; top:22%; z-index:10; background:#fff; border:1px solid #ddd; border-radius:8px; padding:8px;">
             <div class="dropdown-option" data-value="전체" style="padding:6px;cursor:pointer;">전체</div>
-            <div id="option-xcount" class="dropdown-option" data-value="X회 이상" style="padding:6px;cursor:pointer;">X회 이상</div>
-            <div id="xcount-input-wrap" style="display:none;margin-top:6px;"><input id="count-threshold-input" type="number" min="0" placeholder="예: 2" style="width:80px;padding:6px;border-radius:6px;border:1px solid #ddd;" /></div>
+            <div id="option-xcount" class="dropdown-option" data-value="X회 이상" style="padding:6px;cursor:pointer;display:flex;align-items:center;">
+                <span style="flex:0 0 auto;">X회 이상</span>
+                <input id="count-threshold-input" type="number" min="1" placeholder="예: 2" style="width:60px;padding:6px;border-radius:6px;border:1px solid #ddd;text-align:center;margin-left:8px;" disabled />
+            </div>
         </div>
 
         <!-- 로딩 스크린 및 관리자 패널 -->
