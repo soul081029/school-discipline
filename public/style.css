@@ -473,8 +473,9 @@ input:checked + .slider:before { transform: translateX(26px); }
 }
 
 /* Specific font-size separation for header vs cells */
-#daily-table-area th, #cumulative-table-area th { font-size: 15px; }
-#daily-table-area td, #cumulative-table-area td { font-size: 14px; }
+/* Scale admin table font sizes to 80% of previous values */
+#daily-table-area th, #cumulative-table-area th { font-size: 12px; }
+#daily-table-area td, #cumulative-table-area td { font-size: 11px; }
 
 /* Prevent cells from extending horizontally beyond their column width */
 #daily-table-area td, #cumulative-table-area td {
@@ -483,6 +484,18 @@ input:checked + .slider:before { transform: translateX(26px); }
 
 /* Optional: small visual tweak to make table content readable when many rows exist */
 #daily-table-area tr, #cumulative-table-area tr { vertical-align: top; }
+
+/* Delete button style for daily records */
+.delete-record {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    color: white;
+    background-color: #ff4d4f;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
 
 /* Mobile adjustments: stack the two areas vertically and allow horizontal scrolling inside tables */
 @media (max-width: 768px) {

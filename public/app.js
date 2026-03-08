@@ -423,11 +423,11 @@ if (currentPath.includes('admin.html')) {
             table.style.tableLayout = 'fixed';
             const thead = document.createElement('thead');
             const hrow = document.createElement('tr');
-            ['날짜','학번','이름','복장 위반','무단 전자기기 사용'].forEach(h => {
+            ['날짜','학번','이름','복장 위반','무단 전자기기 사용','삭제'].forEach(h => {
                 const th = document.createElement('th');
                 th.textContent = h;
                 th.style.color = '#737373';
-                th.style.fontSize = '20px';
+                th.style.fontSize = '16px';
                 th.style.fontWeight = '500';
                 th.style.textAlign = 'left';
                 th.style.padding = '6px 8px';
@@ -446,8 +446,27 @@ if (currentPath.includes('admin.html')) {
                 const dressCount = counts[r.studentId] ? counts[r.studentId].dress : 0; const dressCell = document.createElement('td'); dressCell.textContent = `${dressText || '없음'} (${dressCount}회)`; dressCell.style.padding='6px 8px';
                 const deviceText = (r.deviceViolations || []).join(', ') + (r.deviceOther ? (r.deviceViolations && r.deviceViolations.length ? ', ' : '') + r.deviceOther : '');
                 const deviceCount = counts[r.studentId] ? counts[r.studentId].device : 0; const deviceCell = document.createElement('td'); deviceCell.textContent = `${deviceText || '없음'} (${deviceCount}회)`; deviceCell.style.padding='6px 8px';
-                [dateCell,idCell,nameCell,dressCell,deviceCell].forEach(c => { c.style.color='#737373'; c.style.fontSize='20px'; c.style.fontWeight='500'; c.style.wordBreak='break-word'; c.style.overflow='hidden'; c.style.textOverflow='ellipsis'; });
+                [dateCell,idCell,nameCell,dressCell,deviceCell].forEach(c => { c.style.color='#737373'; c.style.fontSize='16px'; c.style.fontWeight='500'; c.style.wordBreak='break-word'; c.style.overflow='hidden'; c.style.textOverflow='ellipsis'; });
+                // Delete button cell
+                const delCell = document.createElement('td');
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-record';
+                delBtn.textContent = 'X';
+                delBtn.addEventListener('click', async () => {
+                    if (!confirm('삭제하시겠습니까?')) return;
+                    try {
+                        await deleteDoc(doc(db, 'violations', s.id));
+                        // After deletion, reload both views to recalc counts
+                        await loadViolations();
+                        await loadCumulative();
+                    } catch (err) {
+                        console.error('삭제 실패', err);
+                        alert('삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+                    }
+                });
+                delCell.appendChild(delBtn);
                 tr.appendChild(dateCell); tr.appendChild(idCell); tr.appendChild(nameCell); tr.appendChild(dressCell); tr.appendChild(deviceCell);
+                tr.appendChild(delCell);
                 tbody.appendChild(tr);
             });
             table.appendChild(tbody); dailyTableContainer.appendChild(table);
@@ -498,7 +517,7 @@ if (currentPath.includes('admin.html')) {
             cumulativeTableContainer.innerHTML = '';
             const table = document.createElement('table'); table.style.width='100%'; table.style.borderCollapse='collapse'; table.style.tableLayout='fixed';
             const thead = document.createElement('thead'); const hrow = document.createElement('tr');
-            ['학번','이름','복장 누적','전자 누적'].forEach(h => { const th = document.createElement('th'); th.textContent=h; th.style.color='#737373'; th.style.fontSize='20px'; th.style.fontWeight='500'; th.style.padding='6px 8px'; hrow.appendChild(th); });
+            ['학번','이름','복장 누적','전자 누적'].forEach(h => { const th = document.createElement('th'); th.textContent=h; th.style.color='#737373'; th.style.fontSize='16px'; th.style.fontWeight='500'; th.style.padding='6px 8px'; hrow.appendChild(th); });
             thead.appendChild(hrow); table.appendChild(thead);
             const tbody = document.createElement('tbody');
             rows.forEach(r => {
@@ -507,7 +526,7 @@ if (currentPath.includes('admin.html')) {
                 const nameCell = document.createElement('td'); nameCell.textContent = r.name; nameCell.style.padding='6px 8px'; nameCell.style.wordBreak='break-word';
                 const dressCell = document.createElement('td'); dressCell.textContent = `${r.dress}회`; dressCell.style.padding='6px 8px';
                 const deviceCell = document.createElement('td'); deviceCell.textContent = `${r.device}회`; deviceCell.style.padding='6px 8px';
-                [idCell,nameCell,dressCell,deviceCell].forEach(c=>{ c.style.color='#737373'; c.style.fontSize='20px'; c.style.fontWeight='500'; c.style.overflow='hidden'; c.style.textOverflow='ellipsis'; });
+                [idCell,nameCell,dressCell,deviceCell].forEach(c=>{ c.style.color='#737373'; c.style.fontSize='16px'; c.style.fontWeight='500'; c.style.overflow='hidden'; c.style.textOverflow='ellipsis'; });
                 tr.appendChild(idCell); tr.appendChild(nameCell); tr.appendChild(dressCell); tr.appendChild(deviceCell);
                 tbody.appendChild(tr);
             });
