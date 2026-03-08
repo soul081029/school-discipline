@@ -100,7 +100,7 @@ button {
     border: 1px solid #737373;
     border-radius: 5px;
     box-sizing: border-box;
-    background-color: #FAFFDC;
+    background-color: #FFFCF3;
     color: #737373;
 }
 
@@ -198,10 +198,11 @@ button {
     color: #737373;
 }
 .modal-content h2 {
-    color: #737373;
+    color: #898989;
 }
 .modal-content input {
      background-color: #FFF7DA;
+     border: 1px solid #FFF7DA;
 }
 
 .modal-content button {
@@ -240,7 +241,7 @@ button {
 }
 
 .login-modal-content {
-    background: #ffffff;
+    background: #FFF7DA;
     width: clamp(280px, 80vw, 420px);
     padding: 24px;
     border-radius: 12px;
@@ -253,13 +254,14 @@ button {
 .login-modal-content h2 {
     margin: 0 0 6px 0;
     text-align: center;
+    color: #898989;
 }
 .login-modal-content input[type="email"],
 .login-modal-content input[type="password"] {
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid #FFF7DA;
     border-radius: 8px;
-    background: #fff;
+    background: #FFF7DA;
     box-sizing: border-box;
 }
 .login-modal-content button {
@@ -269,30 +271,16 @@ button {
     cursor: pointer;
 }
 #login-submit {
-    background: #9DB394;
+    background: #EB8F26;
     color: #fff;
 }
-#login-submit:hover { background: #899e80; }
+#login-submit:hover { background: #EB8F26; }
 #login-cancel {
-    background: #777;
+    background: #898989;
     color: #fff;
 }
-#login-cancel:hover { background: #666; }
+#login-cancel:hover { background: #898989; }
 
-/* Switch from old CSS */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-}
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
-.slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
-input:checked + .slider { background-color: #9DB394; }
-input:checked + .slider:before { transform: translateX(26px); }
-.slider.round { border-radius: 34px; }
-.slider.round:before { border-radius: 50%; }
 
 /* Basic Media Query for smaller screens */
 @media (max-width: 768px) {
@@ -491,7 +479,7 @@ input:checked + .slider:before { transform: translateX(26px); }
     height: 20px;
     font-size: 12px;
     color: white;
-    background-color: #ff4d4f;
+    background-color: #898989;
     border: none;
     border-radius: 3px;
     cursor: pointer;
