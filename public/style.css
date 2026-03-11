@@ -508,3 +508,58 @@ button {
     #daily-table-area th, #cumulative-table-area th { font-size: 12px; }
     #daily-table-area td, #cumulative-table-area td { font-size: 12px; }
 }
+
+/* Mobile: center key elements horizontally and set Y positions in vh (1080x1920 -> vh conversion)
+   Rules below apply only on small screens and MUST NOT change element sizes or internal layouts.
+   They only adjust position/top and horizontal centering (left:50% + translateX(-50%)). */
+@media (max-width: 768px) {
+
+    /* Title text (place at ~6.9vh) */
+    .title-box {
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        top: 6.9vh !important;
+        z-index: 1200 !important;
+    }
+
+    /* Checklist background panel (place at ~18.5vh) */
+    .checklist-panel {
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        top: 18.5vh !important;
+        z-index: 1000 !important;
+        /* DO NOT change width/height here (keeps original sizing) */
+    }
+
+    /* Record button centered horizontally, Y at ~47.6vh */
+    #record-violation-btn {
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        top: 47.6vh !important;
+        z-index: 1300 !important; /* keep above checklist contents */
+    }
+
+    /* Teacher/admin auth button (권한 로그인) placed near bottom: ~94.2vh */
+    #teacher-auth-btn {
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        top: 94.2vh !important;
+        z-index: 1200 !important;
+    }
+
+    /* Ensure modals are centered on mobile (password/login). They are already centered
+       by overlays, but force fixed centering inside mobile to be explicit. */
+    #password-modal .modal-content,
+    #login-modal .login-modal-content {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 2000 !important;
+    }
+
+}
