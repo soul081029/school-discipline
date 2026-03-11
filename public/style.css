@@ -520,7 +520,6 @@ button {
         left: 50% !important;
         transform: translateX(-50%) !important;
         top: 6.9vh !important;
-        z-index: 1200 !important;
     }
 
     /* Checklist background panel (place at ~18.5vh) */
@@ -529,7 +528,6 @@ button {
         left: 50% !important;
         transform: translateX(-50%) !important;
         top: 18.5vh !important;
-        z-index: 1000 !important;
         /* DO NOT change width/height here (keeps original sizing) */
     }
 
@@ -539,7 +537,6 @@ button {
         left: 50% !important;
         transform: translateX(-50%) !important;
         top: 47.6vh !important;
-        z-index: 1300 !important; /* keep above checklist contents */
     }
 
     /* Teacher/admin auth button (권한 로그인) placed near bottom: ~94.2vh */
@@ -548,7 +545,6 @@ button {
         left: 50% !important;
         transform: translateX(-50%) !important;
         top: 94.2vh !important;
-        z-index: 1200 !important;
     }
 
     /* Ensure modals are centered on mobile (password/login). They are already centered
@@ -559,7 +555,6 @@ button {
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
-        z-index: 2000 !important;
     }
 
 }
