@@ -215,7 +215,7 @@ if (currentPath.includes('admin.html')) {
     // Auth state
     onAuthStateChanged(auth, user => {
         if (loadingScreen) loadingScreen.style.display = 'none';
-        if (user && user.email === 'admin@school.kr') {
+        if (user && user.email === 'seohyohoon@ps.hs.kr') {
             if (adminContent) adminContent.classList.remove('hidden');
             if (adminPanel) adminPanel.classList.remove('hidden');
             if (datePicker && !datePicker.value) datePicker.valueAsDate = new Date();
