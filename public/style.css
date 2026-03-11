@@ -293,6 +293,13 @@ button {
         padding: 2rem 1rem;
     }
     .title-box, .checklist-panel, #record-violation-btn, #teacher-auth-btn {
+
+    /* Mobile-only: hide the teacher auth button to avoid layout issues when checklist expands */
+    #teacher-auth-btn {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
         position: static;
         width: 100%;
         height: auto;
@@ -516,7 +523,7 @@ button {
 
     /* Title text (place at ~6.9vh) */
     .title-box {
-        position: fixed !important;
+        position: absolute !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         top: 6.9vh !important;
@@ -524,16 +531,15 @@ button {
 
     /* Checklist background panel (place at ~18.5vh) */
     .checklist-panel {
-        position: fixed !important;
+        position: absolute !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         top: 18.5vh !important;
-        /* DO NOT change width/height here (keeps original sizing) */
     }
 
     /* Record button centered horizontally, Y at ~47.6vh */
     #record-violation-btn {
-        position: fixed !important;
+        position: absolute !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         top: 47.6vh !important;
@@ -541,7 +547,7 @@ button {
 
     /* Teacher/admin auth button (권한 로그인) placed near bottom: ~94.2vh */
     #teacher-auth-btn {
-        position: fixed !important;
+        position: absolute !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         top: 94.2vh !important;
@@ -557,4 +563,24 @@ button {
         transform: translate(-50%, -50%) !important;
     }
 
+}
+
+@media (max-width:768px){
+
+html,body{overflow-y:auto;}
+
+.checklist-panel{height:auto!important;}
+
+#record-section{height:auto!important;}
+
+}
+
+/* FINAL MOBILE OVERRIDE: ensure teacher auth button is hidden on small screens.
+   Placed at EOF so it cannot be overridden by earlier mobile rules. */
+@media (max-width: 768px) {
+    #teacher-auth-btn {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
 }
