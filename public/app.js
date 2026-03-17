@@ -4,6 +4,28 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https:/
 
 const currentPath = window.location.pathname;
 
+// --- Academic year helpers ---
+// Academic year definition: starts on March 1 of year N and ends before March 1 of year N+1.
+function getAcademicYearForDate(d) {
+    const month = d.getMonth(); // 0-based: 2 == March
+    const year = d.getFullYear();
+    return (month >= 2) ? year : year - 1;
+}
+
+function getAcademicYearRange(year) {
+    const start = new Date(year, 2, 1, 0, 0, 0, 0); // Mar 1, year
+    const end = new Date(year + 1, 2, 1, 0, 0, 0, 0); // Mar 1, year+1 (exclusive)
+    return { start, end };
+}
+
+function getCurrentAcademicYear() {
+    return getAcademicYearForDate(new Date());
+}
+
+function getCurrentAcademicYearRange() {
+    return getAcademicYearRange(getCurrentAcademicYear());
+}
+
 // --- Record Page ---
 if (currentPath.includes('index.html') || currentPath === '/') {
 
@@ -135,10 +157,12 @@ if (currentPath.includes('index.html') || currentPath === '/') {
         }
 
         try {
+            const schoolYear = getAcademicYearForDate(new Date());
             await addDoc(collection(db, 'violations'), {
                 studentId,
                 studentName,
                 timestamp: Timestamp.now(),
+                schoolYear,
                 dressCodeViolations,
                 dressCodeOther,
                 deviceViolations,
@@ -159,6 +183,14 @@ if (currentPath.includes('index.html') || currentPath === '/') {
         } catch (error) {
             console.error("Error adding document: ", error);
             alert('저장 중 오류가 발생했습니다.');
+        }
+        // Notify other tabs (admin) that a new record was added so they can refresh immediately
+        try {
+            const bc = new BroadcastChannel('violations-updates');
+            bc.postMessage({ type: 'added' });
+            bc.close();
+        } catch (e) {
+            // BroadcastChannel may not be supported on some older browsers; ignore silently
         }
     });
 }
@@ -215,7 +247,7 @@ if (currentPath.includes('admin.html')) {
     // Auth state
     onAuthStateChanged(auth, user => {
         if (loadingScreen) loadingScreen.style.display = 'none';
-        if (user && user.email === 'seohyohoon@ps.hs.kr') {
+        if (user && user.email === 'admin@school.kr') {
             if (adminContent) adminContent.classList.remove('hidden');
             if (adminPanel) adminPanel.classList.remove('hidden');
             if (datePicker && !datePicker.value) datePicker.valueAsDate = new Date();
@@ -270,6 +302,129 @@ if (currentPath.includes('admin.html')) {
     if (xcountInput) xcountInput.addEventListener('input', () => { const v = parseInt(xcountInput.value,10); countThresholdValue = Number.isFinite(v) ? v : 0; loadCumulative(); });
     if (datePicker) datePicker.addEventListener('change', () => { hideAllDropdowns(); loadViolations(); });
 
+    // Year-download UI refs
+    const downloadByYearBtn = document.getElementById('download-by-year-btn');
+    const yearModal = document.getElementById('year-download-modal');
+    const yearSelectList = document.getElementById('year-select-list');
+    const downloadYearExcelBtn = document.getElementById('download-year-excel');
+    const yearDownloadCancel = document.getElementById('year-download-cancel');
+
+    // Listen for cross-tab notifications so admin UI can refresh immediately when a new record is saved elsewhere
+    try {
+        const bc = new BroadcastChannel('violations-updates');
+        bc.onmessage = (ev) => {
+            // Simple refresh of both lists to pick up new data
+            loadViolations();
+            loadCumulative();
+        };
+    } catch (e) {
+        // ignore if not supported
+    }
+
+    async function fetchAvailableAcademicYears() {
+        // Collect distinct schoolYear values from documents. For very large collections this may be heavy;
+        // for now we do a simple scan which matches repository constraints.
+        const snap = await getDocs(collection(db, 'violations'));
+        const years = new Set();
+        snap.forEach(s => {
+            const r = s.data();
+            if (!r) return;
+            if (r.schoolYear !== undefined && r.schoolYear !== null) {
+                years.add(Number(r.schoolYear));
+            } else if (r.timestamp) {
+                const ts = r.timestamp;
+                const docDate = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+                years.add(getAcademicYearForDate(docDate));
+            }
+        });
+        const arr = Array.from(years).sort((a,b) => b - a); // newest first
+        return arr;
+    }
+
+    function renderYearOptions(years) {
+        if (!yearSelectList) return;
+        yearSelectList.innerHTML = '';
+        if (!years.length) {
+            yearSelectList.innerHTML = '<div style="color:#666;padding:8px;">저장된 학년도 데이터가 없습니다.</div>';
+            return;
+        }
+        years.forEach(y => {
+            const id = `year-option-${y}`;
+            const wrapper = document.createElement('div');
+            wrapper.style.padding = '6px 4px';
+            const radio = document.createElement('input'); radio.type = 'radio'; radio.name = 'year-option'; radio.id = id; radio.value = String(y);
+            const label = document.createElement('label'); label.htmlFor = id; label.style.marginLeft = '8px'; label.style.color = '#333'; label.textContent = `${y}학년도 (${y}.03.01 ~ ${y+1}.02.28)`;
+            wrapper.appendChild(radio); wrapper.appendChild(label);
+            yearSelectList.appendChild(wrapper);
+        });
+    }
+
+    if (downloadByYearBtn) {
+        downloadByYearBtn.addEventListener('click', async () => {
+            try {
+                const years = await fetchAvailableAcademicYears();
+                renderYearOptions(years);
+                if (yearModal) yearModal.classList.remove('hidden');
+            } catch (err) {
+                console.error('학년도 목록 조회 실패 - 상세 오류:', err);
+                alert('학년도 목록을 불러오는 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+            }
+        });
+    }
+
+    if (yearDownloadCancel) yearDownloadCancel.addEventListener('click', () => { if (yearModal) yearModal.classList.add('hidden'); });
+
+    if (downloadYearExcelBtn) {
+        downloadYearExcelBtn.addEventListener('click', async () => {
+            try {
+                const sel = document.querySelector('input[name="year-option"]:checked');
+                if (!sel) { alert('학년도를 선택해주세요.'); return; }
+                const year = Number(sel.value);
+                const { start, end } = getAcademicYearRange(year);
+
+                const qPeriod = query(
+                    collection(db,'violations'),
+                    where('timestamp','>=', Timestamp.fromDate(start)),
+                    where('timestamp','<', Timestamp.fromDate(end))
+                );
+                const snap = await getDocs(qPeriod);
+                const map = {};
+                snap.forEach(s => {
+                    const r = s.data();
+                    if (!r || !r.timestamp) return;
+                    const ts = r.timestamp;
+                    const docDate = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+                    const docYear = (r.schoolYear !== undefined && r.schoolYear !== null) ? Number(r.schoolYear) : getAcademicYearForDate(docDate);
+                    if (docYear !== year) return;
+                    const id = r.studentId || '';
+                    if (!map[id]) map[id] = { studentName: r.studentName || '', dress:0, device:0 };
+                    const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
+                    if (hasDressViolation) map[id].dress++;
+                    const hasDeviceViolation = (r.deviceViolations && r.deviceViolations.length) || (r.deviceOther && String(r.deviceOther).trim().length > 0);
+                    if (hasDeviceViolation) map[id].device++;
+                });
+
+                const rows = Object.keys(map).map(k => ({
+                    '학번': k,
+                    '이름': map[k].studentName,
+                    '복장 누적': `${map[k].dress}회`,
+                    '전자 누적': `${map[k].device}회`
+                }));
+
+                if (!rows.length) { alert('선택한 학년도에 데이터가 없습니다.'); return; }
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, '누적');
+                const fn = `위반기록_누적_${year}학년도.xlsx`;
+                XLSX.writeFile(wb, fn);
+                if (yearModal) yearModal.classList.add('hidden');
+            } catch (err) {
+                console.error('년도별 누적 엑셀 실패 - 상세 오류:', err);
+                alert('엑셀 생성 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+            }
+        });
+    }
+
     // Excel handlers (use existing logic)
     if (excelDownloadDailyBtn) {
         excelDownloadDailyBtn.addEventListener('click', async () => {
@@ -297,20 +452,31 @@ if (currentPath.includes('admin.html')) {
                 );
                 const periodSnap = await getDocs(qPeriod);
                 const counts = {};
+                // Count only documents that belong to the current academic year (compute if missing)
                 periodSnap.forEach(s => {
                     const r = s.data();
+                    if (!r || !r.timestamp) return;
+                    const ts = r.timestamp;
+                    const docDate = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+                    const docYear = (r.schoolYear !== undefined && r.schoolYear !== null) ? Number(r.schoolYear) : getAcademicYearForDate(docDate);
+                    const currentYear = getCurrentAcademicYear();
+                    if (docYear !== currentYear) return;
                     const id = r.studentId || '';
                     if (!counts[id]) counts[id] = { dress:0, device:0 };
-                    // Count dress-code related entries: include specific violations and '기타' text
                     const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
                     if (hasDressViolation) counts[id].dress++;
-                    // Count device-related entries: include device violations and '기타' text
                     const hasDeviceViolation = (r.deviceViolations && r.deviceViolations.length) || (r.deviceOther && String(r.deviceOther).trim().length > 0);
                     if (hasDeviceViolation) counts[id].device++;
                 });
 
                 qs.forEach(s => {
                     const r = s.data();
+                    if (!r || !r.timestamp) return;
+                    const ts = r.timestamp;
+                    const docDate = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+                    const docYear = (r.schoolYear !== undefined && r.schoolYear !== null) ? Number(r.schoolYear) : getAcademicYearForDate(docDate);
+                    const currentYear = getCurrentAcademicYear();
+                    if (docYear !== currentYear) return; // skip rows outside current academic year
                     const dressDetails = (r.dressCodeViolations || []).join(', ') + (r.dressCodeOther ? (r.dressCodeViolations && r.dressCodeViolations.length ? ', ' : '') + r.dressCodeOther : '');
                     const deviceDetails = (r.deviceViolations || []).join(', ') + (r.deviceOther ? (r.deviceViolations && r.deviceViolations.length ? ', ' : '') + r.deviceOther : '');
                     rows.push({
@@ -330,7 +496,7 @@ if (currentPath.includes('admin.html')) {
                 XLSX.utils.book_append_sheet(wb, ws, '일별');
                 XLSX.writeFile(wb, `위반기록_일별_${datePicker.value}.xlsx`);
             } catch (err) {
-                console.error('엑셀 생성 실패', err);
+                console.error('엑셀 생성 실패 - 상세 오류:', err);
                 alert('엑셀 생성 중 오류가 발생했습니다. 콘솔을 확인하세요.');
             }
         });
@@ -350,11 +516,17 @@ if (currentPath.includes('admin.html')) {
                 );
                 const snap = await getDocs(qPeriod);
                 const map = {};
+                // Filter documents by academic year in JS to support older docs without schoolYear
                 snap.forEach(s => {
                     const r = s.data();
+                    if (!r || !r.timestamp) return;
+                    const ts = r.timestamp;
+                    const docDate = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+                    const docYear = (r.schoolYear !== undefined && r.schoolYear !== null) ? Number(r.schoolYear) : getAcademicYearForDate(docDate);
+                    const currentYear = getCurrentAcademicYear();
+                    if (docYear !== currentYear) return;
                     const id = r.studentId || '';
                     if (!map[id]) map[id] = { studentName: r.studentName || '', dress:0, device:0 };
-                    // Include '기타' fields in the aggregate counts for dress and device independently
                     const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
                     if (hasDressViolation) map[id].dress++;
                     const hasDeviceViolation = (r.deviceViolations && r.deviceViolations.length) || (r.deviceOther && String(r.deviceOther).trim().length > 0);
@@ -375,7 +547,7 @@ if (currentPath.includes('admin.html')) {
                 const fn = `위반기록_누적_${periodChoice}_${(new Date()).toISOString().slice(0,10)}.xlsx`;
                 XLSX.writeFile(wb, fn);
             } catch (err) {
-                console.error('누적 엑셀 실패', err);
+                console.error('누적 엑셀 실패 - 상세 오류:', err);
                 alert('엑셀 생성 중 오류가 발생했습니다.');
             }
         });
@@ -392,15 +564,23 @@ if (currentPath.includes('admin.html')) {
             const periodChoice = dailyPeriodChoice || '전체';
             const { start: pStart, end: pEnd } = computePeriodRange(periodChoice, new Date(datePicker.value));
 
-            const qPeriod = query(
-                collection(db,'violations'),
-                where('timestamp','>=', Timestamp.fromDate(pStart)),
-                where('timestamp','<=', Timestamp.fromDate(pEnd))
-            );
+            const currentYear = getCurrentAcademicYear();
+                const qPeriod = query(
+                    collection(db,'violations'),
+                    where('timestamp','>=', Timestamp.fromDate(pStart)),
+                    where('timestamp','<=', Timestamp.fromDate(pEnd))
+                );
             const periodSnap = await getDocs(qPeriod);
             const counts = {};
+            // Filter by academic year in JS for backward compatibility
             periodSnap.forEach(s => {
                 const r = s.data();
+                if (!r || !r.timestamp) return;
+                const ts = r.timestamp;
+                const docDate = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+                const docYear = (r.schoolYear !== undefined && r.schoolYear !== null) ? Number(r.schoolYear) : getAcademicYearForDate(docDate);
+                const currentYear = getCurrentAcademicYear();
+                if (docYear !== currentYear) return;
                 const id = r.studentId || '';
                 if (!counts[id]) counts[id] = { dress:0, device:0 };
                 const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
@@ -409,12 +589,12 @@ if (currentPath.includes('admin.html')) {
                 if (hasDeviceViolation) counts[id].device++;
             });
 
-            const qDay = query(
-                collection(db,'violations'),
-                where('timestamp','>=', Timestamp.fromDate(startOfDay)),
-                where('timestamp','<=', Timestamp.fromDate(endOfDay))
-            );
-            const daySnap = await getDocs(qDay);
+                const qDay = query(
+                    collection(db,'violations'),
+                    where('timestamp','>=', Timestamp.fromDate(startOfDay)),
+                    where('timestamp','<=', Timestamp.fromDate(endOfDay))
+                );
+                const daySnap = await getDocs(qDay);
 
             dailyTableContainer.innerHTML = '';
             const table = document.createElement('table');
@@ -436,43 +616,49 @@ if (currentPath.includes('admin.html')) {
             thead.appendChild(hrow); table.appendChild(thead);
 
             const tbody = document.createElement('tbody');
-            daySnap.forEach(s => {
-                const r = s.data();
-                const tr = document.createElement('tr');
-                const dateCell = document.createElement('td'); dateCell.textContent = new Date(r.timestamp.seconds * 1000).toLocaleDateString(); dateCell.style.padding = '6px 8px';
-                const idCell = document.createElement('td'); idCell.textContent = r.studentId || ''; idCell.style.padding='6px 8px';
-                const nameCell = document.createElement('td'); nameCell.textContent = r.studentName || ''; nameCell.style.padding='6px 8px';
-                const dressText = (r.dressCodeViolations || []).join(', ') + (r.dressCodeOther ? (r.dressCodeViolations && r.dressCodeViolations.length ? ', ' : '') + r.dressCodeOther : '');
-                const dressCount = counts[r.studentId] ? counts[r.studentId].dress : 0; const dressCell = document.createElement('td'); dressCell.textContent = `${dressText || '없음'} (${dressCount}회)`; dressCell.style.padding='6px 8px';
-                const deviceText = (r.deviceViolations || []).join(', ') + (r.deviceOther ? (r.deviceViolations && r.deviceViolations.length ? ', ' : '') + r.deviceOther : '');
-                const deviceCount = counts[r.studentId] ? counts[r.studentId].device : 0; const deviceCell = document.createElement('td'); deviceCell.textContent = `${deviceText || '없음'} (${deviceCount}회)`; deviceCell.style.padding='6px 8px';
-                [dateCell,idCell,nameCell,dressCell,deviceCell].forEach(c => { c.style.color='#737373'; c.style.fontSize='16px'; c.style.fontWeight='500'; c.style.wordBreak='break-word'; c.style.overflow='hidden'; c.style.textOverflow='ellipsis'; });
-                // Delete button cell
-                const delCell = document.createElement('td');
-                const delBtn = document.createElement('button');
-                delBtn.className = 'delete-record';
-                delBtn.textContent = 'X';
-                delBtn.addEventListener('click', async () => {
-                    if (!confirm('삭제하시겠습니까?')) return;
-                    try {
-                        await deleteDoc(doc(db, 'violations', s.id));
-                        // After deletion, reload both views to recalc counts
-                        await loadViolations();
-                        await loadCumulative();
-                    } catch (err) {
-                        console.error('삭제 실패', err);
-                        alert('삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.');
-                    }
-                });
-                delCell.appendChild(delBtn);
-                tr.appendChild(dateCell); tr.appendChild(idCell); tr.appendChild(nameCell); tr.appendChild(dressCell); tr.appendChild(deviceCell);
-                tr.appendChild(delCell);
-                tbody.appendChild(tr);
+                    daySnap.forEach(s => {
+                        const r = s.data();
+                        if (!r || !r.timestamp) return;
+                        const ts = r.timestamp;
+                        const docDate = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+                        const docYear = (r.schoolYear !== undefined && r.schoolYear !== null) ? Number(r.schoolYear) : getAcademicYearForDate(docDate);
+                        const currentYear = getCurrentAcademicYear();
+                        if (docYear !== currentYear) return; // skip rows not in current academic year
+                        const tr = document.createElement('tr');
+                        const dateCell = document.createElement('td'); dateCell.textContent = new Date(r.timestamp.seconds * 1000).toLocaleDateString(); dateCell.style.padding = '6px 8px';
+                        const idCell = document.createElement('td'); idCell.textContent = r.studentId || ''; idCell.style.padding='6px 8px';
+                        const nameCell = document.createElement('td'); nameCell.textContent = r.studentName || ''; nameCell.style.padding='6px 8px';
+                        const dressText = (r.dressCodeViolations || []).join(', ') + (r.dressCodeOther ? (r.dressCodeViolations && r.dressCodeViolations.length ? ', ' : '') + r.dressCodeOther : '');
+                        const dressCount = counts[r.studentId] ? counts[r.studentId].dress : 0; const dressCell = document.createElement('td'); dressCell.textContent = `${dressText || '없음'} (${dressCount}회)`; dressCell.style.padding='6px 8px';
+                        const deviceText = (r.deviceViolations || []).join(', ') + (r.deviceOther ? (r.deviceViolations && r.deviceViolations.length ? ', ' : '') + r.deviceOther : '');
+                        const deviceCount = counts[r.studentId] ? counts[r.studentId].device : 0; const deviceCell = document.createElement('td'); deviceCell.textContent = `${deviceText || '없음'} (${deviceCount}회)`; deviceCell.style.padding='6px 8px';
+                        [dateCell,idCell,nameCell,dressCell,deviceCell].forEach(c => { c.style.color='#737373'; c.style.fontSize='16px'; c.style.fontWeight='500'; c.style.wordBreak='break-word'; c.style.overflow='hidden'; c.style.textOverflow='ellipsis'; });
+                        // Delete button cell
+                        const delCell = document.createElement('td');
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'delete-record';
+                        delBtn.textContent = 'X';
+                        delBtn.addEventListener('click', async () => {
+                            if (!confirm('삭제하시겠습니까?')) return;
+                            try {
+                                await deleteDoc(doc(db, 'violations', s.id));
+                                // After deletion, reload both views to recalc counts
+                                await loadViolations();
+                                await loadCumulative();
+                            } catch (err) {
+                                console.error('삭제 실패', err);
+                                alert('삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+                            }
+                        });
+                        delCell.appendChild(delBtn);
+                        tr.appendChild(dateCell); tr.appendChild(idCell); tr.appendChild(nameCell); tr.appendChild(dressCell); tr.appendChild(deviceCell);
+                        tr.appendChild(delCell);
+                        tbody.appendChild(tr);
             });
             table.appendChild(tbody); dailyTableContainer.appendChild(table);
 
         } catch (err) {
-            console.error('loadViolations error', err);
+            console.error('loadViolations error - 상세 오류:', err);
             alert('일별 데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인하세요.');
         }
     }
@@ -485,15 +671,22 @@ if (currentPath.includes('admin.html')) {
             const refDate = datePicker && datePicker.value ? new Date(datePicker.value) : new Date();
             const { start, end } = computePeriodRange(periodChoice, refDate);
 
+            const currentYear = getCurrentAcademicYear();
             const qPeriod = query(
                 collection(db,'violations'),
                 where('timestamp','>=', Timestamp.fromDate(start)),
-                where('timestamp','<=', Timestamp.fromDate(end))
+                where('timestamp','<=', Timestamp.fromDate(end)),
             );
             const snap = await getDocs(qPeriod);
             const map = {};
             snap.forEach(s => {
                 const r = s.data();
+                if (!r || !r.timestamp) return;
+                const ts = r.timestamp;
+                const docDate = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+                const docYear = (r.schoolYear !== undefined && r.schoolYear !== null) ? Number(r.schoolYear) : getAcademicYearForDate(docDate);
+                const currentYear = getCurrentAcademicYear();
+                if (docYear !== currentYear) return;
                 const id = r.studentId || '';
                 if (!map[id]) map[id] = { studentName: r.studentName || '', dress:0, device:0 };
                 const hasDressViolation = (r.dressCodeViolations && r.dressCodeViolations.length) || (r.dressCodeOther && String(r.dressCodeOther).trim().length > 0);
@@ -533,7 +726,7 @@ if (currentPath.includes('admin.html')) {
             table.appendChild(tbody); cumulativeTableContainer.appendChild(table);
 
         } catch (err) {
-            console.error('loadCumulative error', err);
+            console.error('loadCumulative error - 상세 오류:', err);
             alert('누적 데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인하세요.');
         }
     }
