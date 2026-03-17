@@ -49,9 +49,14 @@ if (currentPath.includes('index.html') || currentPath === '/') {
     const deviceViolationOtherCheck = document.getElementById('device-violation-other-check');
     const deviceViolationOtherText = document.getElementById('device-violation-other-text');
 
-    // 기록 버튼 클릭 → 비밀번호 모달 열기
+    // 기록 버튼 클릭 → 바로 기록 섹션 표시 (비밀번호 단계 건너뜀)
     recordBtn.addEventListener('click', () => {
-        passwordModal.classList.remove('hidden');
+        // Show record section immediately without requiring password
+        if (recordSection) recordSection.classList.remove('hidden');
+        // Hide the floating record button
+        if (recordBtn) recordBtn.style.display = 'none';
+        // Ensure password modal does not open
+        if (passwordModal) passwordModal.classList.add('hidden');
     });
 
     // 취소 버튼
@@ -247,7 +252,7 @@ if (currentPath.includes('admin.html')) {
     // Auth state
     onAuthStateChanged(auth, user => {
         if (loadingScreen) loadingScreen.style.display = 'none';
-        if (user && user.email === 'admin@school.kr') {
+        if (user && user.email === 'ps_guidance@ps.hs.kr') {
             if (adminContent) adminContent.classList.remove('hidden');
             if (adminPanel) adminPanel.classList.remove('hidden');
             if (datePicker && !datePicker.value) datePicker.valueAsDate = new Date();
